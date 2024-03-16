@@ -5,7 +5,7 @@ from PIL import Image
 import torch
 import torch.nn as nn
 torch.set_float32_matmul_precision('high')
-NUM_WORKERS = 20
+NUM_WORKERS = 8
 
 from torch.utils.data import DataLoader, TensorDataset
 from utils.datasets import NWPDataset
