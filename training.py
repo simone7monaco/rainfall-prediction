@@ -1,11 +1,14 @@
 import argparse
 from pathlib import Path
 
+import wandb
 from torch import cuda
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.loggers import WandbLogger
 
 from models import SegmentationModel
 
@@ -13,10 +16,10 @@ from models import SegmentationModel
 def get_args():
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--case_study", type=str, default="24h_10mmMAX_OI", choices=['24h_10mmMAX_OI', '24h_10mmMAX_radar'])
-	parser.add_argument("--network_model", type=str, default="unet")
+	parser.add_argument("--network_model", type=str, default="unet_2")
 	parser.add_argument("--batch_size", type=int, default=32)
 	parser.add_argument("--split_idx", type=str, default="701515")
-	parser.add_argument("--n_split", type=int, default=9)
+	parser.add_argument("--n_split", type=int, default=8)
 	parser.add_argument("--lr", type=float, default=1e-4)
 	parser.add_argument("--epochs", type=int, default=300)
 	parser.add_argument("--seed", type=int, default=42)
@@ -26,27 +29,38 @@ def get_args():
 
 def main(args):
 	pl.seed_everything(args.seed)
-	scratch_path = Path("/media/monaco/DATA")
+	scratch_path = Path("data")
 	# scratch_path = Path("/home/monaco/MultimodelPreci")
 
-	input_path = scratch_path / "case_study" / args.case_study
-	output_path = Path('lightning_logs')
+	input_path = scratch_path / args.case_study
+	output_path = Path('reports')
 	output_path /= f'{args.network_model}'
 	
 	args.input_path = input_path
+	args.output_path = output_path
     
 	# logger = CSVLogger(output_path, name=args.network_model)
+    
+	# initialise the wandb logger and name your wandb project
+	if args.epochs > 1:
+		wandb_logger = WandbLogger(project='rainfall_prediction')   
+		# add your batch size to the wandb config
+		wandb_logger.experiment.config["batch_size"] = 32
+	else:
+		wandb_logger = CSVLogger(output_path, name=args.network_model)
+
 
 	early_stop = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=10, verbose=False, mode="min")
 	model_checkpoint = ModelCheckpoint(output_path / args.network_model, monitor='val_loss', mode='min', filename='{epoch}-{val_rmse:.2f}')
+	lr_monitor = LearningRateMonitor(logging_interval='step')
     
 	model = SegmentationModel(**args.__dict__)
 	trainer = pl.Trainer(
-        accelerator='gpu' if cuda.is_available() else 0,
+        accelerator='gpu' if cuda.is_available() else 'cpu',
         max_epochs=args.epochs,
-        callbacks=[model_checkpoint],
+        callbacks=[model_checkpoint, lr_monitor],
 		log_every_n_steps=1,
-        # logger=logger, # default is TensorBoard
+        logger=wandb_logger, # default is TensorBoard
     )
 	trainer.fit(model)
 
