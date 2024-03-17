@@ -10,7 +10,7 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.loggers import WandbLogger
 
-from models import SegmentationModel
+from models import SegmentationModel_1
 
 
 def get_args():
@@ -51,22 +51,22 @@ def main(args):
 
 
 	early_stop = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=10, verbose=False, mode="min")
-	model_checkpoint = ModelCheckpoint(output_path / args.network_model, monitor='val_loss', mode='min', filename='{epoch}-{val_rmse:.2f}')
+	model_checkpoint = ModelCheckpoint(output_path / args.network_model, monitor='val_loss', mode='min', filename='1-{epoch}-{val_rmse:.2f}')
 	lr_monitor = LearningRateMonitor(logging_interval='step')
     
-	model = SegmentationModel(**args.__dict__)
-	trainer = pl.Trainer(
+	model_1 = SegmentationModel_1(**args.__dict__)
+	trainer_1 = pl.Trainer(
         accelerator='gpu' if cuda.is_available() else 'cpu',
         max_epochs=args.epochs,
-        callbacks=[model_checkpoint, lr_monitor],
+        callbacks=[model_checkpoint],
 		log_every_n_steps=1,
         logger=wandb_logger, # default is TensorBoard
     )
-	trainer.fit(model)
+	trainer_1.fit(model)
 
 	print(f"\nLoading best model ({model_checkpoint.best_model_path})")
-	model = SegmentationModel.load_from_checkpoint(model_checkpoint.best_model_path)
-	trainer.test(model)
+	model = SegmentationModel_1.load_from_checkpoint(model_checkpoint.best_model_path)
+	trainer_1.test(model)
 	# trainer.test(model, model.train_dataloader())
 	# trainer.test(model, model.val_dataloader())
 
