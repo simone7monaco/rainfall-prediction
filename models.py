@@ -312,8 +312,6 @@ class SegmentationModel_1(pl.LightningModule):
 			x, times, y = batch
 		y_hat_segm = self.forward(x)
 		y_segm = torch.where(y>0.001, 1, 0).float()
-		loss = self.loss(y_hat_segm, y_segm)
-		self.log("test rmse", self.rmse(loss))
 		#self.log_images(x, y, y_hat, batch_idx)
 
 		self.test_predictions.append(y_hat_segm)
