@@ -51,7 +51,7 @@ def main(args):
 
 
 	early_stop = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=10, verbose=False, mode="min")
-	model_checkpoint_1 = ModelCheckpoint(output_path / args.network_model, monitor='val_loss_segm', mode='min', filename='1-{epoch}-{val_rmse:.2f}')
+	model_checkpoint_1 = ModelCheckpoint(output_path / args.network_model, monitor='val_loss', mode='min', filename='1-{epoch}-{val_loss_segm:.2f}')
 	lr_monitor = LearningRateMonitor(logging_interval='step')
     
 	model_1 = SegmentationModel_1(**args.__dict__)
