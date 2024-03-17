@@ -350,7 +350,8 @@ class SegmentationModel_1(pl.LightningModule):
 
 
 class SegmentationModel_2(pl.LightningModule):
-	def __init__(self, model_1, **hparams):
+	def __init__(self, model_1_hparams,
+                 model_1_params = None, **hparams):
 		super().__init__()
 		self.save_hyperparameters()
 
@@ -361,7 +362,9 @@ class SegmentationModel_2(pl.LightningModule):
 			self.cnn = ExtraUNet(self.in_features, self.out_features, image_shape=(self.x_train[0].shape[1], self.x_train[0].shape[2]), use_attention=True)
 		elif self.hparams.network_model == 'unet_2':
 			self.cnn = UNet(self.in_features, self.out_features)
-			self.model_1 = model_1
+			self.model_1 = SegmentationModel_1(**model_1_hparams)
+			if model_1_params:
+				self.model_1.load_state_dict(model_1_params)
 			self.model_1.freeze()
 			self.save_hyperparameters(ignore=['model_1'])
 		else:
