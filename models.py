@@ -360,12 +360,10 @@ class SegmentationModel_2(pl.LightningModule):
 		elif self.hparams.network_model.startswith('extra'):
 			self.cnn = ExtraUNet(self.in_features, self.out_features, image_shape=(self.x_train[0].shape[1], self.x_train[0].shape[2]), use_attention=True)
 		elif self.hparams.network_model == 'unet_2':
-			self.cnn = UNet(self.in_features, 1)
-			self.cnn_1 = UNet(self.in_features, self.out_features)
+			self.cnn = UNet(self.in_features, self.out_features)
 		else:
 			raise NotImplementedError(f'Model {self.hparams.network_model} not implemented')
 		self.loss = nn.MSELoss()
-		self.loss_segm = nn.BCEWithLogitsLoss()
 
 		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
 		if self.hparams.network_model == 'unet_2':
