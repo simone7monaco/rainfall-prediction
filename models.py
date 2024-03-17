@@ -455,7 +455,7 @@ class SegmentationModel_2(pl.LightningModule):
 		y_hat = self.forward(x, times)
 		loss = self.loss(y_hat, y)
 		self.val_losses.append([self.current_epoch, loss.item()])
-		self.log("train_loss", loss)
+		self.log("val_loss", loss)
 		self.log("val_rmse", self.rmse(loss), prog_bar=True)
 
 		for metric in self.metrics:
