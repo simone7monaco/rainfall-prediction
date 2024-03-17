@@ -386,7 +386,7 @@ class SegmentationModel_2(pl.LightningModule):
 			x_logits_segmentation = self.model_1(x)
 			x_segmentation = x_logits_segmentation.sigmoid().gt(.5)
 			x2 = x * x_segmentation
-			return self.cnn_1(x2)*x_segmentation
+			return self.cnn(x2)*x_segmentation
 		return self.cnn(x) # * torch.heaviside(y, torch.tensor([0]).float().to(self.device)))* torch.heaviside(y, torch.tensor([0]).float().to(self.device)) #mod
 
 	def load_data(self):
