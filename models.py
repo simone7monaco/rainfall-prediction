@@ -350,7 +350,7 @@ class SegmentationModel_1(pl.LightningModule):
 
 
 class SegmentationModel_2(pl.LightningModule):
-	def __init__(self, **hparams):
+	def __init__(self, model_1, **hparams):
 		super().__init__()
 		self.save_hyperparameters()
 
@@ -361,15 +361,14 @@ class SegmentationModel_2(pl.LightningModule):
 			self.cnn = ExtraUNet(self.in_features, self.out_features, image_shape=(self.x_train[0].shape[1], self.x_train[0].shape[2]), use_attention=True)
 		elif self.hparams.network_model == 'unet_2':
 			self.cnn = UNet(self.in_features, self.out_features)
+			self.model_1 = model_1
+			self.model_1.freeze()
 		else:
 			raise NotImplementedError(f'Model {self.hparams.network_model} not implemented')
 		self.loss = nn.MSELoss()
 
 		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
-		if self.hparams.network_model == 'unet_2':
-			self.metrics = [iou]
-		else:
-			self.metrics = []
+		self.metrics = []
 		self.test_predictions = []
 
 		self.train_losses = []
@@ -380,11 +379,11 @@ class SegmentationModel_2(pl.LightningModule):
 		if isinstance(self.cnn, ExtraUNet):
 			return self.cnn(x, times)
 		if self.hparams.network_model == 'unet_2':
-			x_logits_segmentation = self.cnn(x)*self.mask
-			x_segmentation = torch.round(torch.sigmoid(x_logits_segmentation))
+			x_logits_segmentation = self.model_1(x)
+			x_segmentation = x_logits_segmentation.sigmoid().gt(.5)
 			x2 = x * x_segmentation
-			return x_logits_segmentation, self.cnn_1(x2)*x_segmentation
-		return None, self.cnn(x) # * torch.heaviside(y, torch.tensor([0]).float().to(self.device)))* torch.heaviside(y, torch.tensor([0]).float().to(self.device)) #mod
+			return self.cnn_1(x2)*x_segmentation
+		return self.cnn(x) # * torch.heaviside(y, torch.tensor([0]).float().to(self.device)))* torch.heaviside(y, torch.tensor([0]).float().to(self.device)) #mod
 
 	def load_data(self):
 		case_study_max, available_models, train_dates, val_dates, test_dates, indices_one, indices_zero, mask, nx, ny = io.get_casestudy_stuff(
@@ -434,21 +433,13 @@ class SegmentationModel_2(pl.LightningModule):
 			times = None
 		else:
 			x, times, y = batch
-		#y_segm = torch.heaviside(y, torch.tensor([0]).float().to(self.device))
-		y_segm = torch.where(y>0.001, 1, 0).float()
-		y_hat_segm, y_hat = self.forward(x, times) #mod
+		y_hat = self.forward(x, times)
 		loss = self.loss(y_hat, y)
-		if self.hparams.network_model == 'unet_2':
-			loss_segm = self.loss_segm(y_hat_segm, y_segm) /100
-		else:
-			loss_segm = torch.Tensor([0]).to(self.device)
-		self.train_losses.append([self.current_epoch, loss.item(), loss_segm.item()])
-		self.log("train_loss_regr", loss)
-		self.log("train_loss_segm", loss_segm)
-		self.log("train_loss", loss+loss_segm)
+		self.train_losses.append([self.current_epoch, loss.item()])
+		self.log("train_loss", loss)
 		self.log("train_rmse", self.rmse(loss), prog_bar=True)
 
-		return loss + loss_segm
+		return loss
 
 	def validation_step(self, batch, batch_idx):
 		if not isinstance(self.cnn, ExtraUNet):
@@ -457,22 +448,14 @@ class SegmentationModel_2(pl.LightningModule):
 			# y = y * self.mask
 		else:
 			x, times, y = batch
-		#y_segm = torch.heaviside(y, torch.tensor([0]).float().to(self.device))
-		y_segm = torch.where(y>0.001, 1, 0).float()
-		y_hat_segm, y_hat = self.forward(x, times) #mod
+		y_hat = self.forward(x, times)
 		loss = self.loss(y_hat, y)
-		if self.hparams.network_model == 'unet_2':
-			loss_segm = self.loss_segm(y_hat_segm, y_segm) /100
-		else:
-			loss_segm = torch.Tensor([0]).to(self.device)
-		self.val_losses.append([self.current_epoch, loss.item(), loss_segm.item()])
-		self.log("train_loss_regr", loss)
-		self.log("val_loss_segm", loss_segm)
-		self.log("val_loss", loss+loss_segm)
+		self.val_losses.append([self.current_epoch, loss.item()])
+		self.log("train_loss", loss)
 		self.log("val_rmse", self.rmse(loss), prog_bar=True)
 
 		for metric in self.metrics:
-			self.log(f"val_{metric.__name__}", metric(y_hat_segm, y_segm))
+			self.log(f"val_{metric.__name__}", metric(y_hat, y))
 	
 	def test_step(self, batch, batch_idx):
 		if not isinstance(self.cnn, ExtraUNet):
@@ -481,8 +464,7 @@ class SegmentationModel_2(pl.LightningModule):
 			# y = y * self.mask
 		else:
 			x, times, y = batch
-		y_hat_segm, y_hat = self.forward(x, times)
-		y_segm = torch.where(y>0.001, 1, 0).float()
+		y_hat = self.forward(x, times)
 		loss = self.loss(y_hat, y)
 		self.log("test rmse", self.rmse(loss))
 		#self.log_images(x, y, y_hat, batch_idx)
@@ -494,15 +476,15 @@ class SegmentationModel_2(pl.LightningModule):
 			self.log(f"rmse NWP {channel}", self.rmse(loss_ch))
 
 		for metric in self.metrics:
-			self.log(f"test_{metric.__name__}", metric(y_hat_segm, y_segm))
+			self.log(f"test_{metric.__name__}", metric(y_hat, y))
 	
 	def on_train_end(self):
 		import seaborn as sns
 		import pandas as pd
 		import matplotlib.pyplot as plt
 		fig, ax = plt.subplots()
-		train_losses = pd.DataFrame(self.train_losses, columns=['epoch', 'loss', 'loss_segm'])
-		val_losses = pd.DataFrame(self.val_losses, columns=['epoch', 'loss', 'loss_segm'])
+		train_losses = pd.DataFrame(self.train_losses, columns=['epoch', 'loss'])
+		val_losses = pd.DataFrame(self.val_losses, columns=['epoch', 'loss'])
 		sns.lineplot(data=train_losses, x='epoch', y='loss', label='train')
 		sns.lineplot(data=val_losses, x='epoch', y='loss', label='valid')
 		plt.legend()
