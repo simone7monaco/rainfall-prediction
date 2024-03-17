@@ -19,9 +19,9 @@ def get_args():
 	parser.add_argument("--network_model", type=str, default="unet_2")
 	parser.add_argument("--batch_size", type=int, default=32)
 	parser.add_argument("--split_idx", type=str, default="701515")
-	parser.add_argument("--n_split", type=int, default=8)
+	parser.add_argument("--n_split", type=int, default=9)
 	parser.add_argument("--lr", type=float, default=1e-4)
-	parser.add_argument("--epochs", type=int, default=300)
+	parser.add_argument("--epochs", type=int, default=100)
 	parser.add_argument("--seed", type=int, default=42)
 	args = parser.parse_args()
 	return args
@@ -29,7 +29,7 @@ def get_args():
 
 def main(args):
 	pl.seed_everything(args.seed)
-	scratch_path = Path("data")
+	scratch_path = Path("/home/students/s265780/data")
 	# scratch_path = Path("/home/monaco/MultimodelPreci")
 
 	input_path = scratch_path / args.case_study

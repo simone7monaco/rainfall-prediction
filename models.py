@@ -54,7 +54,7 @@ class SegmentationModel(pl.LightningModule):
 		if isinstance(self.cnn, ExtraUNet):
 			return self.cnn(x, times)
 		if self.hparams.network_model == 'unet_2':
-			x_logits_segmentation = self.cnn(x*self.mask)*self.mask
+			x_logits_segmentation = self.cnn(x)*self.mask
 			x_segmentation = torch.round(torch.sigmoid(x_logits_segmentation))
 			x2 = x * x_segmentation
 			return x_logits_segmentation, self.cnn_1(x2)*x_segmentation
@@ -113,7 +113,7 @@ class SegmentationModel(pl.LightningModule):
 		y_hat_segm, y_hat = self.forward(x, times) #mod
 		loss = self.loss(y_hat, y)
 		if self.hparams.network_model == 'unet_2':
-			loss_segm = self.loss_segm(y_hat_segm, y_segm) /50
+			loss_segm = self.loss_segm(y_hat_segm, y_segm) /100
 		else:
 			loss_segm = torch.Tensor([0]).to(self.device)
 		self.train_losses.append([self.current_epoch, loss.item(), loss_segm.item()])
@@ -136,7 +136,7 @@ class SegmentationModel(pl.LightningModule):
 		y_hat_segm, y_hat = self.forward(x, times) #mod
 		loss = self.loss(y_hat, y)
 		if self.hparams.network_model == 'unet_2':
-			loss_segm = self.loss_segm(y_hat_segm, y_segm) /50
+			loss_segm = self.loss_segm(y_hat_segm, y_segm) /100
 		else:
 			loss_segm = torch.Tensor([0]).to(self.device)
 		self.val_losses.append([self.current_epoch, loss.item(), loss_segm.item()])
