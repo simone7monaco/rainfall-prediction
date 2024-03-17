@@ -363,6 +363,7 @@ class SegmentationModel_2(pl.LightningModule):
 			self.cnn = UNet(self.in_features, self.out_features)
 			self.model_1 = model_1
 			self.model_1.freeze()
+			self.save_hyperparameters(ignore=['model_1'])
 		else:
 			raise NotImplementedError(f'Model {self.hparams.network_model} not implemented')
 		self.loss = nn.MSELoss()

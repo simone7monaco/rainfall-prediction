@@ -52,7 +52,7 @@ def main(args):
 
 
 	early_stop = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=10, verbose=False, mode="min")
-	model_checkpoint_1 = ModelCheckpoint(output_path / args.network_model, monitor='val_loss_segm', mode='min', filename='1-{epoch}-{val_loss_segm:.2f}')
+	model_checkpoint_1 = ModelCheckpoint(output_path / "unet_1", monitor='val_loss_segm', mode='min', filename='1-{epoch}-{val_loss_segm:.2f}')
 	lr_monitor = LearningRateMonitor(logging_interval='step')
     
 	model_1 = SegmentationModel_1(**args.__dict__)
@@ -75,7 +75,7 @@ def main(args):
 	model_checkpoint_2 = ModelCheckpoint(output_path / args.network_model, monitor='val_loss', mode='min', filename='2-{epoch}-{val_loss:.2f}')
 	lr_monitor = LearningRateMonitor(logging_interval='step')
     
-	model_2 = SegmentationModel_2(**args.__dict__)
+	model_2 = SegmentationModel_2(model_1, **args.__dict__)
 	trainer_2 = pl.Trainer(
         accelerator='gpu' if cuda.is_available() else 'cpu',
         max_epochs=args.epochs,
