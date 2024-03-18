@@ -51,7 +51,7 @@ class SegmentationModel(pl.LightningModule):
 
 	def forward(self, x, times):
 		if isinstance(self.cnn, ExtraUNet):
-			return self.cnn(x, times)
+			return None, self.cnn(x, times)
 		if self.hparams.network_model == 'unet_2':
 			x_logits_segmentation = self.cnn(x)*self.mask
 			x_segmentation = torch.round(torch.sigmoid(x_logits_segmentation))
