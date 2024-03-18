@@ -279,7 +279,7 @@ class SegmentationModel_1(pl.LightningModule):
 		else:
 			x, times, y = batch
 		y_segm = torch.where(y>self.hparams.where_threshold, 1, 0).float()
-		y_hat_segm = self.forward(x)
+		y_hat_segm = self.forward(x).gt(self.hparams.sigmoid_threshold)
 		loss_segm = self.loss(y_hat_segm, y_segm)
 		self.train_losses.append([self.current_epoch, loss_segm.item()])
 		self.log("train_loss_segm", loss_segm)
@@ -295,7 +295,7 @@ class SegmentationModel_1(pl.LightningModule):
 			x, times, y = batch
 		#y_segm = torch.heaviside(y, torch.tensor([0]).float().to(self.device))
 		y_segm = torch.where(y>self.hparams.where_threshold, 1, 0).float()
-		y_hat_segm = self.forward(x)
+		y_hat_segm = self.forward(x).gt(self.hparams.sigmoid_threshold)
 		loss_segm = self.loss(y_hat_segm, y_segm)
 		self.val_losses.append([self.current_epoch, loss_segm.item()])
 		self.log("val_loss_segm", loss_segm)
@@ -310,7 +310,7 @@ class SegmentationModel_1(pl.LightningModule):
 			# y = y * self.mask
 		else:
 			x, times, y = batch
-		y_hat_segm = self.forward(x)
+		y_hat_segm = self.forward(x).gt(self.hparams.sigmoid_threshold)
 		y_segm = torch.where(y>self.hparams.where_threshold, 1, 0).float()
 		#self.log_images(x, y, y_hat, batch_idx)
 
