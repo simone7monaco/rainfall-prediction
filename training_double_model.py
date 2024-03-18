@@ -24,6 +24,9 @@ def get_args():
 	parser.add_argument("--lr", type=float, default=1e-4)
 	parser.add_argument("--epochs", type=int, default=100)
 	parser.add_argument("--seed", type=int, default=42)
+	parser.add_argument("--sigmoid_threshold", type=float, default=0.5)
+	parser.add_argument("--where_threshold", type=float, default=0.001)
+ 
 	args = parser.parse_args()
 	return args
 	

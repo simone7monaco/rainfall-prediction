@@ -217,7 +217,7 @@ class SegmentationModel_1(pl.LightningModule):
 
 		self.load_data()
 		self.cnn = UNet(self.in_features, self.out_features)
-		self.loss = nn.BCEWithLogitsLoss()
+		self.loss = nn.BCELoss()
 
 		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
 		self.metrics = [iou]
@@ -227,8 +227,9 @@ class SegmentationModel_1(pl.LightningModule):
 		self.val_losses = []
 
 	def forward(self, x):
-		x_logits_segmentation = self.cnn(x)*self.mask
-		return x_logits_segmentation
+		x_logits_segmentation = self.cnn(x)
+		x_segmentation = x_logits_segmentation.sigmoid().gt(self.hparams.sigmoid_threshold)
+		return x_segmentation*self.mask
 
 	def load_data(self):
 		case_study_max, available_models, train_dates, val_dates, test_dates, indices_one, indices_zero, mask, nx, ny = io.get_casestudy_stuff(
@@ -277,10 +278,9 @@ class SegmentationModel_1(pl.LightningModule):
 			times = None
 		else:
 			x, times, y = batch
-		#y_segm = torch.heaviside(y, torch.tensor([0]).float().to(self.device))
-		y_segm = torch.where(y>0.001, 1, 0).float()
+		y_segm = torch.where(y>self.hparams.where_threshold, 1, 0).float()
 		y_hat_segm = self.forward(x)
-		loss_segm = self.loss(y_hat_segm, y_segm) /100
+		loss_segm = self.loss(y_hat_segm, y_segm)
 		self.train_losses.append([self.current_epoch, loss_segm.item()])
 		self.log("train_loss_segm", loss_segm)
 
@@ -294,7 +294,7 @@ class SegmentationModel_1(pl.LightningModule):
 		else:
 			x, times, y = batch
 		#y_segm = torch.heaviside(y, torch.tensor([0]).float().to(self.device))
-		y_segm = torch.where(y>0.001, 1, 0).float()
+		y_segm = torch.where(y>self.hparams.where_threshold, 1, 0).float()
 		y_hat_segm = self.forward(x)
 		loss_segm = self.loss(y_hat_segm, y_segm)
 		self.val_losses.append([self.current_epoch, loss_segm.item()])
@@ -311,7 +311,7 @@ class SegmentationModel_1(pl.LightningModule):
 		else:
 			x, times, y = batch
 		y_hat_segm = self.forward(x)
-		y_segm = torch.where(y>0.001, 1, 0).float()
+		y_segm = torch.where(y>self.hparams.where_threshold, 1, 0).float()
 		#self.log_images(x, y, y_hat, batch_idx)
 
 		self.test_predictions.append(y_hat_segm)
@@ -381,8 +381,7 @@ class SegmentationModel_2(pl.LightningModule):
 		if isinstance(self.cnn, ExtraUNet):
 			return self.cnn(x, times)
 		if self.hparams.network_model == 'unet_2':
-			x_logits_segmentation = self.model_1(x)
-			x_segmentation = x_logits_segmentation.sigmoid().gt(.5)
+			x_segmentation = self.model_1(x)
 			x2 = x * x_segmentation
 			return self.cnn(x2)*x_segmentation
 		return self.cnn(x) # * torch.heaviside(y, torch.tensor([0]).float().to(self.device)))* torch.heaviside(y, torch.tensor([0]).float().to(self.device)) #mod
