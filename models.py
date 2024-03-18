@@ -368,6 +368,7 @@ class SegmentationModel_2(pl.LightningModule):
 		else:
 			raise NotImplementedError(f'Model {self.hparams.network_model} not implemented')
 		self.loss = nn.MSELoss()
+		self.lossL1 = nn.L1Loss()
 
 		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
 		self.metrics = []
@@ -435,7 +436,7 @@ class SegmentationModel_2(pl.LightningModule):
 		else:
 			x, times, y = batch
 		y_hat = self.forward(x, times)
-		loss = self.loss(y_hat, y)
+		loss = self.lossL1(y_hat, y)
 		self.train_losses.append([self.current_epoch, loss.item()])
 		self.log("train_loss", loss)
 		self.log("train_rmse", self.rmse(loss), prog_bar=True)
