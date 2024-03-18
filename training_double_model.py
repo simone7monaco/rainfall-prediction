@@ -74,23 +74,23 @@ def main(args):
 	# trainer.test(model, model.train_dataloader())
 	# trainer.test(model, model.val_dataloader())
 
+	if(args.network_model == "unet_2"):
+		model_checkpoint_2 = ModelCheckpoint(output_path / args.network_model, monitor='val_loss', mode='min', filename='2-{epoch}-{val_loss:.2f}')
+		lr_monitor = LearningRateMonitor(logging_interval='step')
+		
+		model_2 = SegmentationModel_2(model_1.hparams, model_1.state_dict(), **args.__dict__)
+		trainer_2 = pl.Trainer(
+			accelerator='gpu' if cuda.is_available() else 'cpu',
+			max_epochs=args.epochs,
+			callbacks=[model_checkpoint_2],
+			log_every_n_steps=1,
+			logger=wandb_logger, # default is TensorBoard
+		)
+		trainer_2.fit(model_2)
 
-	model_checkpoint_2 = ModelCheckpoint(output_path / args.network_model, monitor='val_loss', mode='min', filename='2-{epoch}-{val_loss:.2f}')
-	lr_monitor = LearningRateMonitor(logging_interval='step')
-    
-	model_2 = SegmentationModel_2(model_1.hparams, model_1.state_dict(), **args.__dict__)
-	trainer_2 = pl.Trainer(
-        accelerator='gpu' if cuda.is_available() else 'cpu',
-        max_epochs=args.epochs,
-        callbacks=[model_checkpoint_2],
-		log_every_n_steps=1,
-        logger=wandb_logger, # default is TensorBoard
-    )
-	trainer_2.fit(model_2)
-
-	print(f"\nLoading best model ({model_checkpoint_2.best_model_path})")
-	model_2 = SegmentationModel_2.load_from_checkpoint(model_checkpoint_2.best_model_path)
-	trainer_2.test(model_2)
+		print(f"\nLoading best model ({model_checkpoint_2.best_model_path})")
+		model_2 = SegmentationModel_2.load_from_checkpoint(model_checkpoint_2.best_model_path)
+		trainer_2.test(model_2)
 
 if __name__ == '__main__':
 	args = get_args()
