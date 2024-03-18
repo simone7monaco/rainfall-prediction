@@ -228,7 +228,7 @@ class SegmentationModel_1(pl.LightningModule):
 
 	def forward(self, x):
 		x_logits_segmentation = self.cnn(x)
-		x_segmentation = x_logits_segmentation.sigmoid().gt(self.hparams.sigmoid_threshold)
+		x_segmentation = x_logits_segmentation.sigmoid()
 		return x_segmentation*self.mask
 
 	def load_data(self):
@@ -381,7 +381,7 @@ class SegmentationModel_2(pl.LightningModule):
 		if isinstance(self.cnn, ExtraUNet):
 			return self.cnn(x, times)
 		if self.hparams.network_model == 'unet_2':
-			x_segmentation = self.model_1(x)
+			x_segmentation = self.model_1(x).gt(self.hparams.sigmoid_threshold)
 			x2 = x * x_segmentation
 			return self.cnn(x2)*x_segmentation
 		return self.cnn(x) # * torch.heaviside(y, torch.tensor([0]).float().to(self.device)))* torch.heaviside(y, torch.tensor([0]).float().to(self.device)) #mod
