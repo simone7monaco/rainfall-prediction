@@ -37,6 +37,7 @@ class SegmentationModel(pl.LightningModule):
 			raise NotImplementedError(f'Model {self.hparams.network_model} not implemented')
 		self.loss = nn.MSELoss()
 		self.loss_segm = nn.BCEWithLogitsLoss()
+		self.lossL1 = nn.L1Loss()
 
 		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
 		if self.hparams.network_model == 'unet_2':
@@ -110,7 +111,7 @@ class SegmentationModel(pl.LightningModule):
 		#y_segm = torch.heaviside(y, torch.tensor([0]).float().to(self.device))
 		y_segm = torch.where(y>0.001, 1, 0).float()
 		y_hat_segm, y_hat = self.forward(x, times) #mod
-		loss = self.loss(y_hat, y)
+		loss = self.lossL1(y_hat, y)
 		if self.hparams.network_model == 'unet_2':
 			loss_segm = self.loss_segm(y_hat_segm, y_segm) /100
 		else:
