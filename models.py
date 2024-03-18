@@ -14,8 +14,7 @@ from networks.unet import UNet, ExtraUNet
 
 import pytorch_lightning as pl
 
-def iou(pred, gt):
-	pred_ = pred.sigmoid().gt(.5)
+def iou(pred_, gt):
 	intersection = pred_.int() & gt.int()
 	union = pred_.int() | gt.int()
 	return intersection.sum() / union.sum()
