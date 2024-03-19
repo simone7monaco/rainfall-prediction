@@ -72,7 +72,6 @@ class SegmentationModel(pl.LightningModule):
 		self.mask = torch.from_numpy(mask).float().to('cuda') #.to(self.device)
 		self.in_features = in_features
 		self.out_features = out_features
-		#print(f"nx: {nx}, ny: {ny}, sum: {mask.sum()}")
 	
 	def train_dataloader(self):
 		if isinstance(self.cnn, ExtraUNet):
@@ -160,6 +159,7 @@ class SegmentationModel(pl.LightningModule):
 		loss = self.loss(y_hat*self.mask, y*self.mask)
 		self.log("test rmse", self.rmse(loss))
 		#self.log_images(x, y, y_hat, batch_idx)
+		print(f"sum pred: {y_hat.sum()}, sum pred*mask: {(y_hat*self.mask).sum()}, sum y: {y.sum()}, sum y*mask: {(y*self.mask).sum()}")
 
 		self.test_predictions.append(y_hat)
 
