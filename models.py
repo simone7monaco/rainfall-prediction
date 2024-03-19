@@ -58,7 +58,7 @@ class SegmentationModel(pl.LightningModule):
 			x_segmentation = torch.round(torch.sigmoid(x_logits_segmentation))
 			x2 = x * x_segmentation
 			return x_logits_segmentation, self.cnn_1(x2)*x_segmentation
-		return None, self.cnn(x) # * torch.heaviside(y, torch.tensor([0]).float().to(self.device)))* torch.heaviside(y, torch.tensor([0]).float().to(self.device)) #mod
+		return None, self.cnn(x)*self.mask # * torch.heaviside(y, torch.tensor([0]).float().to(self.device)))* torch.heaviside(y, torch.tensor([0]).float().to(self.device)) #mod
 
 	def load_data(self):
 		case_study_max, available_models, train_dates, val_dates, test_dates, indices_one, indices_zero, mask, nx, ny = io.get_casestudy_stuff(
