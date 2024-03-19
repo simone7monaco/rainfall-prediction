@@ -4,6 +4,7 @@ from PIL import Image
 
 import torch
 import torch.nn as nn
+import numpy as np
 torch.set_float32_matmul_precision('high')
 NUM_WORKERS = 32
 
@@ -110,7 +111,7 @@ class SegmentationModel(pl.LightningModule):
 		#y_segm = torch.heaviside(y, torch.tensor([0]).float().to(self.device))
 		y_segm = torch.where(y>0.001, 1, 0).float()
 		y_hat_segm, y_hat = self.forward(x, times) #mod
-		loss = self.lossL1(y_hat, y)
+		loss = self.lossL1(torch.absolute(torch.sqrt(y_hat)), torch.absolute(torch.sqrt(y)))
 		if self.hparams.network_model == 'unet_2':
 			loss_segm = self.loss_segm(y_hat_segm, y_segm) /100
 		else:
@@ -160,6 +161,8 @@ class SegmentationModel(pl.LightningModule):
 		self.log("test rmse", self.rmse(loss))
 		#self.log_images(x, y, y_hat, batch_idx)
 		print(f"sum pred: {y_hat.sum()}, sum pred*mask: {(y_hat*self.mask).sum()}, sum y: {y.sum()}, sum y*mask: {(y*self.mask).sum()}")
+		print(f"y shape: {y.squeeze().shape}, y_hat shape: {y_hat.squeeze().shape}")
+		print(f"np.rmse: {np.sqrt(np.square(y.to('cpu').detach().numpy()*self.case_study_max-y_hat.squeeze().to('cpu').detach().numpy()*self.case_study_max).sum()/(63*128*96))}")
 
 		self.test_predictions.append(y_hat)
 
