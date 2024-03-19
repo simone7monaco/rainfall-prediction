@@ -152,10 +152,10 @@ def load_data_2d_unet(
     from matplotlib import pyplot as plt  # type: ignore
     models_data = []
     obs_data = []
-    max_altitude = 4000
-    altitude = get_altitude(topdir, max_altitude)
-    altitude=np.hstack((altitude,np.zeros((altitude.shape[0], int(2**np.ceil(np.log2(altitude.shape[1]))) - altitude.shape[1])))) # **update:** this was hardcoded as (96, 12) [12 supposed to be 128]
-    altitude[indices_zero] = 0
+    #max_altitude = 4000
+    #altitude = get_altitude(topdir, max_altitude)
+    #altitude=np.hstack((altitude,np.zeros((altitude.shape[0], int(2**np.ceil(np.log2(altitude.shape[1]))) - altitude.shape[1])))) # **update:** this was hardcoded as (96, 12) [12 supposed to be 128]
+    #altitude[indices_zero] = 0
     for date in dates:
         _models_tmp = []
         #print(date)
@@ -170,7 +170,7 @@ def load_data_2d_unet(
                 _mdl_data = _mdl_data[:-1]
             _models_tmp.append(_mdl_data)
         #add altitude
-        _models_tmp.append(altitude)
+        #_models_tmp.append(altitude)
         models_data.append(_models_tmp)
         _obs_data = get_obs(topdir, date, case_study_max)
         _obs_data=np.hstack((_obs_data,np.zeros((_obs_data.shape[0], int(2**np.ceil(np.log2(_obs_data.shape[1]))) - _obs_data.shape[1]))))
