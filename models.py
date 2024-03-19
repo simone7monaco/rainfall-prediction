@@ -58,7 +58,7 @@ class SegmentationModel(pl.LightningModule):
 			x_segmentation = torch.round(torch.sigmoid(x_logits_segmentation))
 			x2 = x * x_segmentation
 			return x_logits_segmentation, self.cnn_1(x2)*x_segmentation
-		return None, self.cnn(x)*self.mask # * torch.heaviside(y, torch.tensor([0]).float().to(self.device)))* torch.heaviside(y, torch.tensor([0]).float().to(self.device)) #mod
+		return None, self.cnn(x) # * torch.heaviside(y, torch.tensor([0]).float().to(self.device)))* torch.heaviside(y, torch.tensor([0]).float().to(self.device)) #mod
 
 	def load_data(self):
 		case_study_max, available_models, train_dates, val_dates, test_dates, indices_one, indices_zero, mask, nx, ny = io.get_casestudy_stuff(
@@ -157,7 +157,7 @@ class SegmentationModel(pl.LightningModule):
 			x, times, y = batch
 		y_hat_segm, y_hat = self.forward(x, times)
 		y_segm = torch.where(y>0.001, 1, 0).float()
-		loss = self.loss(y_hat, y)
+		loss = self.loss(y_hat*self.mask, y*self.mask)
 		self.log("test rmse", self.rmse(loss))
 		#self.log_images(x, y, y_hat, batch_idx)
 
