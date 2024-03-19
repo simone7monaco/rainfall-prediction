@@ -22,7 +22,7 @@ class HideModel(nn.Module):
 class NWPDataset(Dataset):
     """TensorDataset with support of transforms.
     """
-    def __init__(self, tensors, transform=HideModel()):
+    def __init__(self, tensors, transform=None):
         assert all(tensors[0].size(0) == tensor.size(0) for tensor in tensors)
         self.tensors = tensors
         self.transform = transform
