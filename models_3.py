@@ -200,7 +200,7 @@ class SegmentationModel(pl.LightningModule):
 				Image.fromarray(tensor_to_img(image[i:i+1])).convert('L').save(respath/f"{batch_idx}_{img_idx}_m{i}.png")
 
 	def configure_optimizers(self):
-		return torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
+		return torch.optim.Adam(self.parameters(), lr=self.hparams.lr1)
 
 	#def configure_optimizers(self):
 		#optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
@@ -363,7 +363,7 @@ class SegmentationModel_1(pl.LightningModule):
 				Image.fromarray(tensor_to_img(image[i:i+1])).convert('L').save(respath/f"{batch_idx}_{img_idx}_m{i}.png")
 
 	def configure_optimizers(self):
-		return torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
+		return torch.optim.Adam(self.parameters(), lr=self.hparams.lr1)
 
 
 class SegmentationModel_2(pl.LightningModule):
@@ -502,4 +502,4 @@ class SegmentationModel_2(pl.LightningModule):
 				Image.fromarray(tensor_to_img(image[i:i+1])).convert('L').save(respath/f"{batch_idx}_{img_idx}_m{i}.png")
 
 	def configure_optimizers(self):
-		return torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
+		return torch.optim.Adam(self.parameters(), lr=self.hparams.lr2)
