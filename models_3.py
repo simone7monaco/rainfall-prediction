@@ -15,10 +15,10 @@ from networks.unet import UNet, ExtraUNet
 
 import pytorch_lightning as pl
 
-def iou(pred_, gt):
-	intersection = pred_.int() & gt.int()
-	union = pred_.int() | gt.int()
-	return intersection.sum() / union.sum()
+def iou(pred, gt):
+    intersection = pred.int() & gt.int()
+    union = pred.int() | gt.int()
+    return intersection.sum() / union.sum()
     
 
 class SegmentationModel(pl.LightningModule):
@@ -225,7 +225,7 @@ class SegmentationModel_1(pl.LightningModule):
 		self.loss = nn.CrossEntropyLoss()
 
 		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
-		self.metrics = []
+		self.metrics = [iou]
 		self.test_predictions = []
 
 		self.train_losses = []
@@ -327,9 +327,16 @@ class SegmentationModel_1(pl.LightningModule):
 		#self.log_images(x, y, y_hat, batch_idx)
 
 		self.test_predictions.append(y_hat_segm)
+  
+		pred_class = torch.softmax(y_hat_segm, dim=1).argmax(dim=1)
+		pred_L = torch.where(pred_class==0, 1, 0)
+		pred_LH = torch.where(pred_class==1, 1, 0)
+		pred_H = torch.where(pred_class==2, 1, 0)
 
 		for metric in self.metrics:
-			self.log(f"test_{metric.__name__}", metric(y_hat_segm, y_segm))
+			self.log(f"test_{metric.__name__}_L", metric(pred_L, y_segm_L.squeeze()))
+			self.log(f"test_{metric.__name__}_LH", metric(pred_LH, y_segm_LH.squeeze()))
+			self.log(f"test_{metric.__name__}_H", metric(pred_H, y_segm_H.squeeze()))
 	
 	def on_train_end(self):
 		import seaborn as sns
@@ -394,16 +401,14 @@ class SegmentationModel_2(pl.LightningModule):
 	def forward(self, x, times):
 		if self.hparams.network_model == 'unet_3':
 			x_segmentation = torch.softmax(self.model_1(x), dim=1).argmax(dim=1)
-			x_segmentation_L = (x_segmentation[:, 1].int() | x_segmentation[:, 0].int()).unsqueeze(1)
-			x_segmentation_H = (x_segmentation[:, 1].int() | x_segmentation[:, 2].int()).unsqueeze(1)
-			x_L = x * x_segmentation_L
-			x_H = x * x_segmentation_H
-			cnn_L = self.cnn_L(x_L)*x_segmentation_L
-			cnn_H = self.cnn_H(x_H)*x_segmentation_H
-			out_L = cnn_L * x_segmentation[:, 0].unsqueeze(1)
-			out_H = cnn_H * x_segmentation[:, 2].unsqueeze(1)
-			mask_LH = x_segmentation[:, 1].unsqueeze(1)
-			return cnn_L*out_L + cnn_H*out_H + (cnn_L*mask_LH)/2 + (cnn_H*mask_LH)/2
+			pred_L = torch.where(x_segmentation==0, 1, 0)
+			pred_LH = torch.where(x_segmentation==1, 1, 0)
+			pred_H = torch.where(x_segmentation==2, 1, 0)
+			x_L = x * pred_L
+			x_H = x * pred_H
+			out_L = self.cnn_L(x_L)
+			out_H = self.cnn_H(x_H)
+			return pred_L*out_L + pred_H*out_H + (out_L*pred_LH)/2 + (out_H*pred_LH)/2
 		return self.cnn(x)
 
 	def load_data(self):
@@ -421,39 +426,20 @@ class SegmentationModel_2(pl.LightningModule):
 		#print(f"nx: {nx}, ny: {ny}, sum: {mask.sum()}")
 	
 	def train_dataloader(self):
-		if isinstance(self.cnn, ExtraUNet):
-			train_dataset = NWPDataset((
-				torch.from_numpy(self.x_train), torch.from_numpy(io.date_features(self.train_dates)),
-				torch.from_numpy(self.y_train).unsqueeze(1)))
-		else:
-			train_dataset = NWPDataset((torch.from_numpy(self.x_train), torch.from_numpy(self.y_train).unsqueeze(1)))
+		train_dataset = NWPDataset((torch.from_numpy(self.x_train), torch.from_numpy(self.y_train).unsqueeze(1)))
 		return DataLoader(train_dataset, batch_size=self.hparams.batch_size, shuffle=True, num_workers=NUM_WORKERS)
 		
 	def val_dataloader(self):
-		if isinstance(self.cnn, ExtraUNet):
-			val_dataset = NWPDataset((
-				torch.from_numpy(self.x_val), torch.from_numpy(io.date_features(self.val_dates)),
-				torch.from_numpy(self.y_val).unsqueeze(1)))
-		else:
-			val_dataset = NWPDataset((torch.from_numpy(self.x_val), torch.from_numpy(self.y_val).unsqueeze(1)))
+		val_dataset = NWPDataset((torch.from_numpy(self.x_val), torch.from_numpy(self.y_val).unsqueeze(1)))
 		return DataLoader(val_dataset, batch_size=len(val_dataset), shuffle=False, num_workers=NUM_WORKERS)
 	
 	def test_dataloader(self):
-		if isinstance(self.cnn, ExtraUNet):
-			test_dataset = NWPDataset((
-				torch.from_numpy(self.x_test), torch.from_numpy(io.date_features(self.test_dates)),
-				torch.from_numpy(self.y_test).unsqueeze(1)))
-		else:
-			test_dataset = NWPDataset((torch.from_numpy(self.x_test), torch.from_numpy(self.y_test).unsqueeze(1)))
+		test_dataset = NWPDataset((torch.from_numpy(self.x_test), torch.from_numpy(self.y_test).unsqueeze(1)))
 		return DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False, num_workers=NUM_WORKERS)
 	
 	def training_step(self, batch, batch_idx):
-		if not isinstance(self.cnn, ExtraUNet):
-			x, y = batch
-			# y = y * self.mask
-			times = None
-		else:
-			x, times, y = batch
+		x, y = batch
+		times = None
 		y_hat = self.forward(x, times)
 		loss = self.lossL1(y_hat, y)
 		self.train_losses.append([self.current_epoch, loss.item()])
@@ -463,12 +449,8 @@ class SegmentationModel_2(pl.LightningModule):
 		return loss
 
 	def validation_step(self, batch, batch_idx):
-		if not isinstance(self.cnn, ExtraUNet):
-			x, y = batch
-			times = None
-			# y = y * self.mask
-		else:
-			x, times, y = batch
+		x, y = batch
+		times = None
 		y_hat = self.forward(x, times)
 		loss = self.loss(y_hat, y)
 		self.val_losses.append([self.current_epoch, loss.item()])
@@ -479,12 +461,8 @@ class SegmentationModel_2(pl.LightningModule):
 			self.log(f"val_{metric.__name__}", metric(y_hat, y))
 	
 	def test_step(self, batch, batch_idx):
-		if not isinstance(self.cnn, ExtraUNet):
-			x, y = batch
-			times = None
-			# y = y * self.mask
-		else:
-			x, times, y = batch
+		x, y = batch
+		times = None
 		y_hat = self.forward(x, times)
 		loss = self.loss(y_hat, y)
 		self.log("test rmse", self.rmse(loss))
