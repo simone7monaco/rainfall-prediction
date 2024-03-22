@@ -256,7 +256,7 @@ class SegmentationModel_1(pl.LightningModule):
 				torch.from_numpy(self.y_train).unsqueeze(1)))
 		else:
 			train_dataset = NWPDataset((torch.from_numpy(self.x_train), torch.from_numpy(self.y_train).unsqueeze(1)))
-		print(f"y_train shape: {(self.y_train).unsqueeze(1).shape}")
+		print(f"y_train shape: {(self.y_train).unsqueeze(1).shape}") ####
 		return DataLoader(train_dataset, batch_size=self.hparams.batch_size, shuffle=True, num_workers=NUM_WORKERS)
 		
 	def val_dataloader(self):
@@ -285,9 +285,9 @@ class SegmentationModel_1(pl.LightningModule):
 		else:
 			x, times, y = batch
 		y_segm_H = torch.where(y>self.hparams.where_threshold_H, 1, 0).float()
-		y_segm_LH = torch.where(y<=self.hparams.where_threshold_H and y>=self.hparams.where_threshold_L, 1, 0).float()
+		y_segm_LH = torch.where(y<=self.hparams.where_threshold_H.bool() and y>=self.hparams.where_threshold_L.bool(), 1, 0).float()
 		y_segm_L = torch.where(y<self.hparams.where_threshold_L, 1, 0).float()
-		y_segm = torch.cat(y_segm_L, y_segm_LH, y_segm_H)
+		y_segm = torch.stack(y_segm_L, y_segm_LH, y_segm_H)
 		y_hat_segm = self.forward(x)
 		print(f"y_segm shape: {y_segm.shape}")
 		print(F"y_hat_segm shape: {y_hat_segm.shape}")
