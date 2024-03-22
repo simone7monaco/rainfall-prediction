@@ -404,8 +404,8 @@ class SegmentationModel_2(pl.LightningModule):
 			pred_L = torch.where(x_segmentation==0, 1, 0)
 			pred_LH = torch.where(x_segmentation==1, 1, 0)
 			pred_H = torch.where(x_segmentation==2, 1, 0)
-			x_L = x * pred_L
-			x_H = x * pred_H
+			x_L = x * pred_L.unsqueeze(dim=1)
+			x_H = x * pred_H.unsqueeze(dim=1)
 			out_L = self.cnn_L(x_L)
 			out_H = self.cnn_H(x_H)
 			return pred_L*out_L + pred_H*out_H + (out_L*pred_LH)/2 + (out_H*pred_LH)/2
