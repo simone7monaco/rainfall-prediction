@@ -300,16 +300,16 @@ class SegmentationModel_1(pl.LightningModule):
 			# y = y * self.mask
 		else:
 			x, times, y = batch
-		y_segm_H = torch.where(y>self.hparams.where_threshold_H, 1, 0).float()
-		y_segm_L = torch.where(y<self.hparams.where_threshold_L, 1, 0).float()
-		y_segm_LH = y_segm_H.int() & y_segm_L.int()
+		y_segm_H = torch.where(y>self.hparams.where_threshold_L/self.case_study_max, 1, 0).float()
+		y_segm_L = torch.where(y<self.hparams.where_threshold_H/self.case_study_max, 1, 0).float()
+		y_segm_LH = torch.where((y<=self.hparams.where_threshold_L/self.case_study_max) & (y>=self.hparams.where_threshold_H/self.case_study_max), 1, 0).float()
 		y_segm = torch.cat([y_segm_L, y_segm_LH, y_segm_H], dim=1)
 		y_hat_segm = self.forward(x)
 		loss_segm = self.loss(y_hat_segm, y_segm)
 		self.log("val_loss_segm", loss_segm)
 
 		for metric in self.metrics:
-			self.log(f"val_{metric.__name__}", metric(y_hat_segm.gt(self.hparams.sigmoid_threshold), y_segm))
+			#self.log(f"val_{metric.__name__}", metric(y_hat_segm, y_segm))
 	
 	def test_step(self, batch, batch_idx):
 		if not isinstance(self.cnn, ExtraUNet):
@@ -318,9 +318,9 @@ class SegmentationModel_1(pl.LightningModule):
 			# y = y * self.mask
 		else:
 			x, times, y = batch
-		y_segm_H = torch.where(y>self.hparams.where_threshold_H, 1, 0).float()
-		y_segm_L = torch.where(y<self.hparams.where_threshold_L, 1, 0).float()
-		y_segm_LH = y_segm_H.int() & y_segm_L.int()
+		y_segm_H = torch.where(y>self.hparams.where_threshold_L/self.case_study_max, 1, 0).float()
+		y_segm_L = torch.where(y<self.hparams.where_threshold_H/self.case_study_max, 1, 0).float()
+		y_segm_LH = torch.where((y<=self.hparams.where_threshold_L/self.case_study_max) & (y>=self.hparams.where_threshold_H/self.case_study_max), 1, 0).float()
 		y_segm = torch.cat([y_segm_L, y_segm_LH, y_segm_H], dim=1)
 		y_hat_segm = self.forward(x)
 		loss_segm = self.loss(y_hat_segm, y_segm)
