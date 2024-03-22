@@ -359,7 +359,7 @@ class SegmentationModel_1(pl.LightningModule):
 		return torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
 
 
-class SegmentationModel_H(pl.LightningModule):
+class SegmentationModel_2(pl.LightningModule):
 	def __init__(self, model_1_hparams,
                  model_1_params = None, **hparams):
 		super().__init__()
@@ -371,7 +371,8 @@ class SegmentationModel_H(pl.LightningModule):
 		elif self.hparams.network_model.startswith('extra'):
 			self.cnn = ExtraUNet(self.in_features, self.out_features, image_shape=(self.x_train[0].shape[1], self.x_train[0].shape[2]), use_attention=True)
 		elif self.hparams.network_model == 'unet_3':
-			self.cnn = UNet(self.in_features, self.out_features)
+			self.cnn_L = UNet(self.in_features, self.out_features)
+			self.cnn_H = UNet(self.in_features, self.out_features)
 			self.model_1 = SegmentationModel_1(**model_1_hparams)
 			if model_1_params:
 				self.model_1.load_state_dict(model_1_params)
@@ -391,12 +392,18 @@ class SegmentationModel_H(pl.LightningModule):
 		
 
 	def forward(self, x, times):
-		if isinstance(self.cnn, ExtraUNet):
-			return self.cnn(x, times)
 		if self.hparams.network_model == 'unet_3':
 			x_segmentation = self.model_1(x).gt(self.hparams.sigmoid_threshold)
-			x2 = x * x_segmentation
-			return self.cnn(x2)*x_segmentation
+			x_segmentation_L = (x_segmentation[:, 1].int() | x_segmentation[:, 0].int()).unsqueeze(1)
+			x_segmentation_H = (x_segmentation[:, 1].int() | x_segmentation[:, 2].int()).unsqueeze(1)
+			x_L = x * x_segmentation_L
+			x_H = x * x_segmentation_H
+			cnn_L = self.cnn_L(x_L)*x_segmentation_L
+			cnn_H = self.cnn_H(x_H)*x_segmentation_H
+			out_L = cnn_L * x_segmentation[:, 0].unsqueeze(1)
+			out_H = cnn_H * x_segmentation[:, 2].unsqueeze(1)
+			mask_LH = x_segmentation[:, 1].unsqueeze(1)
+			return cnn_L*out_L + cnn_H*out_H + (cnn_L*mask_LH)/2 + (cnn_H*mask_LH)/2
 		return self.cnn(x)
 
 	def load_data(self):
