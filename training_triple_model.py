@@ -11,7 +11,6 @@ from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.loggers import WandbLogger
 
 from models_3 import SegmentationModel_1
-from models_3 import SegmentationModel_2
 
 
 def get_args():
