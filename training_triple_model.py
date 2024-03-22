@@ -21,7 +21,7 @@ def get_args():
 	parser.add_argument("--batch_size", type=int, default=32)
 	parser.add_argument("--split_idx", type=str, default="701515")
 	parser.add_argument("--n_split", type=int, default=9)
-	parser.add_argument("--lr1", type=float, default=1e-3)
+	parser.add_argument("--lr1", type=float, default=1e-5)
 	parser.add_argument("--lr2", type=float, default=1e-4)
 	parser.add_argument("--epochs", type=int, default=100)
 	parser.add_argument("--seed", type=int, default=42)
