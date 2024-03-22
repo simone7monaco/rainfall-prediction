@@ -402,11 +402,11 @@ class SegmentationModel_2(pl.LightningModule):
 	def forward(self, x, times):
 		if self.hparams.network_model == 'unet_3':
 			x_segmentation = torch.softmax(self.model_1(x), dim=1).argmax(dim=1)
-			pred_L = torch.where(x_segmentation==0, 1, 0)
-			pred_LH = torch.where(x_segmentation==1, 1, 0)
-			pred_H = torch.where(x_segmentation==2, 1, 0)
-			x_L = x * pred_L.unsqueeze(dim=1)
-			x_H = x * pred_H.unsqueeze(dim=1)
+			pred_L = torch.where(x_segmentation==0, 1, 0).unsqueeze(dim=1)
+			pred_LH = torch.where(x_segmentation==1, 1, 0).unsqueeze(dim=1)
+			pred_H = torch.where(x_segmentation==2, 1, 0).unsqueeze(dim=1)
+			x_L = x * pred_L # add or
+			x_H = x * pred_H
 			out_L = self.cnn_L(x_L)
 			out_H = self.cnn_H(x_H)
 			return pred_L*out_L + pred_H*out_H + (out_L*pred_LH)/2 + (out_H*pred_LH)/2
