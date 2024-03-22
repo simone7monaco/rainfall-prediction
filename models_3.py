@@ -225,7 +225,7 @@ class SegmentationModel_1(pl.LightningModule):
 		self.loss = nn.CrossEntropyLoss()
 
 		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
-		self.metrics = [iou]
+		self.metrics = []
 		self.test_predictions = []
 
 		self.train_losses = []
@@ -286,8 +286,6 @@ class SegmentationModel_1(pl.LightningModule):
 		y_segm_LH = y_segm_H.int() & y_segm_L.int()
 		y_segm = torch.cat([y_segm_L, y_segm_LH, y_segm_H], dim=1)		
 		y_hat_segm = self.forward(x)
-		print(f"y_segm shape: {y_segm.shape}")
-		print(F"y_hat_segm shape: {y_hat_segm.shape}")
 		loss_segm = self.loss(y_hat_segm, y_segm)
 		self.train_losses.append([self.current_epoch, loss_segm.item()])
 		self.log("train_loss_segm", loss_segm)
@@ -319,8 +317,13 @@ class SegmentationModel_1(pl.LightningModule):
 			# y = y * self.mask
 		else:
 			x, times, y = batch
-		y_hat_segm = self.forward(x).gt(self.hparams.sigmoid_threshold)
-		y_segm = torch.where(y>((self.hparams.where_threshold_H+self.hparams.where_threshold_L)/2), 1, 0).float()
+		y_segm_H = torch.where(y>self.hparams.where_threshold_H, 1, 0).float()
+		y_segm_L = torch.where(y<self.hparams.where_threshold_L, 1, 0).float()
+		y_segm_LH = y_segm_H.int() & y_segm_L.int()
+		y_segm = torch.cat([y_segm_L, y_segm_LH, y_segm_H], dim=1)
+		y_hat_segm = self.forward(x)
+		loss_segm = self.loss(y_hat_segm, y_segm)
+		self.log("test_loss_segm", loss_segm)
 		#self.log_images(x, y, y_hat, batch_idx)
 
 		self.test_predictions.append(y_hat_segm)
