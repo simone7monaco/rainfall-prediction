@@ -308,7 +308,7 @@ class SegmentationModel_1(pl.LightningModule):
 		loss_segm = self.loss(y_hat_segm, y_segm)
 		self.log("val_loss_segm", loss_segm)
 
-		for metric in self.metrics:
+		#for metric in self.metrics:
 			#self.log(f"val_{metric.__name__}", metric(y_hat_segm, y_segm))
 	
 	def test_step(self, batch, batch_idx):
