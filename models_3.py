@@ -222,7 +222,7 @@ class SegmentationModel_1(pl.LightningModule):
 
 		self.load_data()
 		self.cnn = UNet(self.in_features, 3)
-		self.loss = nn.BCELoss()
+		self.loss = nn.CrossEntropyLoss()
 
 		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
 		self.metrics = [iou]
@@ -232,9 +232,7 @@ class SegmentationModel_1(pl.LightningModule):
 		self.val_losses = []
 
 	def forward(self, x):
-		x_s = self.cnn(x)
-		print(f"x_s shape: {x_s.shape}")
-		return x_s
+		return self.cnn(x)*self.mask
 
 	def load_data(self):
 		case_study_max, available_models, train_dates, val_dates, test_dates, indices_one, indices_zero, mask, nx, ny = io.get_casestudy_stuff(
