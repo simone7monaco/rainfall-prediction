@@ -285,8 +285,8 @@ class SegmentationModel_1(pl.LightningModule):
 		else:
 			x, times, y = batch
 		y_segm_H = torch.where(y>self.hparams.where_threshold_H, 1, 0).float()
-		y_segm_LH = torch.where((y<=self.hparams.where_threshold_H and y>=self.hparams.where_threshold_L), 1, 0).float()
 		y_segm_L = torch.where(y<self.hparams.where_threshold_L, 1, 0).float()
+		y_segm_LH = y_segm_H.int() & y_segm_L.int()
 		y_segm = torch.stack(y_segm_L, y_segm_LH, y_segm_H)
 		y_hat_segm = self.forward(x)
 		print(f"y_segm shape: {y_segm.shape}")
@@ -305,8 +305,8 @@ class SegmentationModel_1(pl.LightningModule):
 		else:
 			x, times, y = batch
 		y_segm_H = torch.where(y>self.hparams.where_threshold_H, 1, 0).float()
-		y_segm_LH = torch.where((y<=self.hparams.where_threshold_H & y>=self.hparams.where_threshold_L), 1, 0).float()
 		y_segm_L = torch.where(y<self.hparams.where_threshold_L, 1, 0).float()
+		y_segm_LH = y_segm_H.int() & y_segm_L.int()
 		y_segm = torch.cat(y_segm_L, y_segm_LH, y_segm_H)
 		y_hat_segm = self.forward(x)
 		loss_segm = self.loss(y_hat_segm, y_segm)
