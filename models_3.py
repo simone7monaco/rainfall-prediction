@@ -256,6 +256,7 @@ class SegmentationModel_1(pl.LightningModule):
 				torch.from_numpy(self.y_train).unsqueeze(1)))
 		else:
 			train_dataset = NWPDataset((torch.from_numpy(self.x_train), torch.from_numpy(self.y_train).unsqueeze(1)))
+		print(f"y_train shape: {(self.y_train).unsqueeze(1).shape}")
 		return DataLoader(train_dataset, batch_size=self.hparams.batch_size, shuffle=True, num_workers=NUM_WORKERS)
 		
 	def val_dataloader(self):
@@ -304,14 +305,12 @@ class SegmentationModel_1(pl.LightningModule):
 		else:
 			x, times, y = batch
 		y_segm_H = torch.where(y>self.hparams.where_threshold_H, 1, 0).float()
-		y_segm_L = torch.where(y<self.hparams.where_threshold_L, 0, 1).float()
-		y_segm = torch.where(y>((self.hparams.where_threshold_H+self.hparams.where_threshold_L)/2), 1, 0).float()
+		y_segm_LH = torch.where(y<=self.hparams.where_threshold_H and y>=self.hparams.where_threshold_L, 1, 0).float()
+		y_segm_L = torch.where(y<self.hparams.where_threshold_L, 1, 0).float()
+		y_segm = torch.cat(y_segm_L, y_segm_LH, y_segm_H)
 		y_hat_segm = self.forward(x)
-		loss_segm_H = self.loss(y_hat_segm, y_segm_H)
-		loss_segm_L = self.loss(y_hat_segm, y_segm_L)
-		self.train_losses.append([self.current_epoch, loss_segm_H.item() + loss_segm_L.item()])
-		self.log("train_loss_segm_H", loss_segm_H)
-		self.log("train_loss_segm_L", loss_segm_L)
+		loss_segm = self.loss(y_hat_segm, y_segm)
+		self.log("val_loss_segm", loss_segm)
 
 		for metric in self.metrics:
 			self.log(f"val_{metric.__name__}", metric(y_hat_segm.gt(self.hparams.sigmoid_threshold), y_segm))
