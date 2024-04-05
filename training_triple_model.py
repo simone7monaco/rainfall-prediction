@@ -56,7 +56,7 @@ def main(args):
 		wandb_logger = CSVLogger(output_path, name=args.network_model)
 
 
-	early_stop = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=10, verbose=False, mode="min")
+	early_stop_1 = EarlyStopping(monitor="val_loss_segm", min_delta=0.00, patience=10, verbose=False, mode="min")
 	model_checkpoint_1 = ModelCheckpoint(output_path / "unet_1", monitor='val_loss_segm', mode='min', filename='1-{epoch}-{val_loss_segm:.2f}')
 	lr_monitor = LearningRateMonitor(logging_interval='step')
     
@@ -64,7 +64,7 @@ def main(args):
 	trainer_1 = pl.Trainer(
         accelerator='gpu' if cuda.is_available() else 'cpu',
         max_epochs=args.epochs,
-        callbacks=[model_checkpoint_1],
+        callbacks=[model_checkpoint_1, early_stop_1],
 		log_every_n_steps=1,
         logger=wandb_logger, # default is TensorBoard
     )
@@ -77,6 +77,7 @@ def main(args):
 	# trainer.test(model, model.val_dataloader())
 
 	if(args.network_model == "unet_3"):
+		early_stop_2 = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=10, verbose=False, mode="min")
 		model_checkpoint_2 = ModelCheckpoint(output_path / args.network_model, monitor='val_loss', mode='min', filename='2-{epoch}-{val_loss:.2f}')
 		lr_monitor = LearningRateMonitor(logging_interval='step')
 		
@@ -84,7 +85,7 @@ def main(args):
 		trainer_2 = pl.Trainer(
 			accelerator='gpu' if cuda.is_available() else 'cpu',
 			max_epochs=args.epochs,
-			callbacks=[model_checkpoint_2],
+			callbacks=[model_checkpoint_2, early_stop_2],
 			log_every_n_steps=1,
 			logger=wandb_logger, # default is TensorBoard
 		)
