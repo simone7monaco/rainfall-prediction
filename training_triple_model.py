@@ -56,7 +56,7 @@ def main(args):
 		wandb_logger = CSVLogger(output_path, name=args.network_model)
 
 
-	early_stop_1 = EarlyStopping(monitor="val_loss_segm", min_delta=0.02, patience=10, verbose=False, mode="min")
+	early_stop_1 = EarlyStopping(monitor="val_loss_segm", min_delta=0.04, patience=10, verbose=False, mode="min")
 	model_checkpoint_1 = ModelCheckpoint(output_path / "unet_1", monitor='val_loss_segm', mode='min', filename='1-{epoch}-{val_loss_segm:.2f}')
 	lr_monitor = LearningRateMonitor(logging_interval='step')
     
@@ -77,7 +77,7 @@ def main(args):
 	# trainer.test(model, model.val_dataloader())
 
 	if(args.network_model == "unet_3"):
-		early_stop_2 = EarlyStopping(monitor="val_loss", min_delta=0.0001, patience=10, verbose=False, mode="min")
+		early_stop_2 = EarlyStopping(monitor="val_loss", min_delta=0.0003, patience=10, verbose=False, mode="min")
 		model_checkpoint_2 = ModelCheckpoint(output_path / args.network_model, monitor='val_loss', mode='min', filename='2-{epoch}-{val_loss:.2f}')
 		lr_monitor = LearningRateMonitor(logging_interval='step')
 		
