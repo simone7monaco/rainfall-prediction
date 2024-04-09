@@ -22,7 +22,7 @@ class HideModel(nn.Module):
 class NWPDataset(Dataset):
     """TensorDataset with support of transforms.
     """
-    def __init__(self, tensors, transform=HideModel()):
+    def __init__(self, tensors, transform=None): # HideModel()
         assert all(tensors[0].size(0) == tensor.size(0) for tensor in tensors)
         self.tensors = tensors
         self.transform = transform
@@ -31,9 +31,9 @@ class NWPDataset(Dataset):
         x = self.tensors[0][index]
         if self.transform is not None:
             x = self.transform(x)
-
-        y = self.tensors[1][index]
-        return (x, *(tensor[index] for tensor in self.tensors[1:]))
+        if len(self.tensors) == 2:
+            return ({'x': x, 'y': self.tensors[1][index]})
+        return ({'x': x, 'y': self.tensors[1][index], 'ev_date': self.tensors[2][index]})
 
     def __len__(self):
         return self.tensors[0].size(0)

@@ -5,8 +5,35 @@ import numpy as np
 
 conv_out_shape = lambda W: int(W - 3 + 2) + 1
 
+class EncBlock(nn.Module):
+    def __init__(self, in_c, out_c, dropout=0.):
+        super().__init__()
+        self.e1 = nn.Conv2d(in_c, out_c, kernel_size=3, padding='same')
+        self.e2 = nn.Conv2d(out_c, out_c, kernel_size=3, padding='same')
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.dropout = nn.Dropout(dropout)
+		
+    def forward(self, inputs):
+        x = relu(self.e1(inputs))
+        x = relu(self.e2(x))
+        x = self.dropout(x)
+        p = self.pool(x)
+        return x, p
+	
+class DecBlock(nn.Module):
+    def __init__(self, in_c, out_c, dropout=0.):
+        super().__init__()
+        self.up = nn.ConvTranspose2d(in_c, out_c, kernel_size=2, stride=2, padding=0)
+        self.conv = EncBlock(out_c+out_c, out_c, dropout=dropout)
+        
+    def forward(self, inputs, skip):
+        x = self.up(inputs)
+        x = torch.cat([x, skip], axis=1)
+        x, _ = self.conv(x)
+        return x
+
 class UNet(nn.Module):
-    def __init__(self, in_features: int, out_features: int, activation=None):
+    def __init__(self, in_features: int, out_features: int, activation=None, dropout=0.):
         super().__init__()
 
         self.activation = activation
@@ -15,130 +42,45 @@ class UNet(nn.Module):
         # In the encoder, convolutional layers with the Conv2d function are used to extract features from the input image. 
         # Each block in the encoder consists of two convolutional layers followed by a max-pooling layer, with the exception of the last block which does not include a max-pooling layer.
         # -------
-        # input: 572x572x3
-        self.e11 = nn.Conv2d(in_features, 64, kernel_size=3, padding="same") # output: 570x570x64
-        self.e12 = nn.Conv2d(64, 64, kernel_size=3, padding="same") # output: 568x568x64
-        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2) # output: 284x284x64
 
-        # input: 284x284x64
-        self.e21 = nn.Conv2d(64, 128, kernel_size=3, padding="same") # output: 282x282x128
-        self.e22 = nn.Conv2d(128, 128, kernel_size=3, padding="same") # output: 280x280x128
-        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2) # output: 140x140x128
-
-        # input: 140x140x128
-        self.e31 = nn.Conv2d(128, 256, kernel_size=3, padding="same") # output: 138x138x256
-        self.e32 = nn.Conv2d(256, 256, kernel_size=3, padding="same") # output: 136x136x256
-        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2) # output: 68x68x256
-
-        # input: 68x68x256
-        self.e41 = nn.Conv2d(256, 512, kernel_size=3, padding="same") # output: 66x66x512
-        self.e42 = nn.Conv2d(512, 512, kernel_size=3, padding="same") # output: 64x64x512
-        self.pool4 = nn.MaxPool2d(kernel_size=2, stride=2) # output: 32x32x512
-
-        # input: 32x32x512
-        self.e51 = nn.Conv2d(512, 1024, kernel_size=3, padding="same") # output: 30x30x1024
-        self.e52 = nn.Conv2d(1024, 1024, kernel_size=3, padding="same") # output: 28x28x1024
-
-
-        # Decoder
-        self.upconv1 = nn.ConvTranspose2d(1024, 512, kernel_size=2, stride=2)
-        self.d11 = nn.Conv2d(1024, 512, kernel_size=3, padding="same")
-        self.d12 = nn.Conv2d(512, 512, kernel_size=3, padding="same")
-
-        self.upconv2 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
-        self.d21 = nn.Conv2d(512, 256, kernel_size=3, padding="same")
-        self.d22 = nn.Conv2d(256, 256, kernel_size=3, padding="same")
-
-        self.upconv3 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
-        self.d31 = nn.Conv2d(256, 128, kernel_size=3, padding="same")
-        self.d32 = nn.Conv2d(128, 128, kernel_size=3, padding="same")
-
-        self.upconv4 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
-        self.d41 = nn.Conv2d(128, 64, kernel_size=3, padding="same")
-        self.d42 = nn.Conv2d(64, 64, kernel_size=3, padding="same")
-
+        self.enc1 = EncBlock(in_features, 64) # input: 572x572x3
+        self.enc2 = EncBlock(64, 128) # input: 284x284x64
+        self.enc3 = EncBlock(128, 256) # input: 140x140x128
+        self.enc4 = EncBlock(256, 512) # input: 68x68x256
+        self.enc5 = EncBlock(512, 1024) # input: 32x32x512
+        
+        # Decoder, dropout only here
+        self.dec1 = DecBlock(1024, 512, dropout)
+        self.dec2 = DecBlock(512, 256, dropout)
+        self.dec3 = DecBlock(256, 128, dropout)
+        self.dec4 = DecBlock(128, 64, dropout)
+        
         # Output layer
         self.outconv = nn.Conv2d(64, out_features, kernel_size=1)
+	
+    def eval_dp(self):
+        self.eval()
+        for m in self.modules():
+            if isinstance(m, nn.Dropout):
+                m.train()
 
     def forward(self, x):
             # Encoder
-            xe11 = relu(self.e11(x))
-            xe12 = relu(self.e12(xe11))
-            xp1 = self.pool1(xe12)
-
-            xe21 = relu(self.e21(xp1))
-            xe22 = relu(self.e22(xe21))
-            xp2 = self.pool2(xe22)
-
-            xe31 = relu(self.e31(xp2))
-            xe32 = relu(self.e32(xe31))
-            xp3 = self.pool3(xe32)
-
-            xe41 = relu(self.e41(xp3))
-            xe42 = relu(self.e42(xe41))
-            xp4 = self.pool4(xe42)
-
-            xe51 = relu(self.e51(xp4))
-            xe52 = relu(self.e52(xe51))
+            xe12, xp1 = self.enc1(x)
+            xe22, xp2 = self.enc2(xp1)
+            xe32, xp3 = self.enc3(xp2)
+            xe42, xp4 = self.enc4(xp3)
+            xe52, _ = self.enc5(xp4)
             
             # Decoder
-            xu1 = self.upconv1(xe52)
-            xu11 = torch.cat([xu1, xe42], dim=1)
-            xd11 = relu(self.d11(xu11))
-            xd12 = relu(self.d12(xd11))
-
-            xu2 = self.upconv2(xd12)
-            xu22 = torch.cat([xu2, xe32], dim=1)
-            xd21 = relu(self.d21(xu22))
-            xd22 = relu(self.d22(xd21))
-
-            xu3 = self.upconv3(xd22)
-            xu33 = torch.cat([xu3, xe22], dim=1)
-            xd31 = relu(self.d31(xu33))
-            xd32 = relu(self.d32(xd31))
-
-            xu4 = self.upconv4(xd32)
-            xu44 = torch.cat([xu4, xe12], dim=1)
-            xd41 = relu(self.d41(xu44))
-            xd42 = relu(self.d42(xd41))
-
+            xd12 = self.dec1(xe52, xe42)
+            xd22 = self.dec2(xd12, xe32)
+            xd32 = self.dec3(xd22, xe22)
+            xd42 = self.dec4(xd32, xe12)
+            
             # Output layer
             out = self.outconv(xd42)
-
             return out
-    
-
-class EncBlock(nn.Module):
-    def __init__(self, in_c, out_c, use_batchnorm=True):
-        super().__init__()
-        
-        self.block = nn.Sequential(
-			nn.Conv2d(in_c, out_c, kernel_size=3, padding='same'),
-			nn.BatchNorm2d(out_c) if use_batchnorm else nn.Identity(),
-			nn.ReLU(),
-			nn.Conv2d(out_c, out_c, kernel_size=3, padding='same'),
-			nn.BatchNorm2d(out_c) if use_batchnorm else nn.Identity(),
-			nn.ReLU()
-		)
-        self.pool = nn.MaxPool2d((2, 2))
-        
-    def forward(self, inputs):
-        x = self.block(inputs)
-        p = self.pool(x)
-        return x, p
-
-class DecBlock(nn.Module):
-    def __init__(self, in_c, out_c, use_batchnorm=True):
-        super().__init__()
-
-        self.up = nn.ConvTranspose2d(in_c, out_c, kernel_size=2, stride=2, padding=0)
-        self.conv = EncBlock(out_c+out_c, out_c, use_batchnorm=use_batchnorm).block
-
-    def forward(self, inputs, skip):
-        x = self.up(inputs)
-        x = torch.cat([x, skip], axis=1)
-        x = self.conv(x)
-        return x
     
 class AttentionBlockV0(nn.Module):
 	def __init__(self, dim, channels, time_features, hidden_dim=64):
@@ -223,8 +165,7 @@ class ExtraUNet(nn.Module):
 			self.attention_blocks = [nn.Identity] * 4
 
 	def forward(self, x, date):
-		# the "Extra" model has an extra input, the date (a unique number for the whole image), this value is encoded as an attention map and multiplied by the output of all the skip connections
-            
+		# the "Extra" model has an extra input, the date (a unique number for the whole image), this value is encoded as an attention map and multiplied by the output of all the skip connections            
 		# Encoder
 		skips = []
 		for block, att_block in zip(self.encoder, self.attention_blocks):
@@ -232,7 +173,6 @@ class ExtraUNet(nn.Module):
 			if self.use_attention:
 				s = att_block(date, s)
 			skips.append(s)
-                  
 		x = self.bottleneck(x)
 
 		# Decoder
@@ -241,7 +181,6 @@ class ExtraUNet(nn.Module):
 
 		# Output layer
 		out = self.outconv(x)
-
 		return out
       
 if __name__ == "__main__":

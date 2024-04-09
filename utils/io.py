@@ -33,7 +33,7 @@ def get_mask_indices(topdir: str,ispadded:bool):
         file_path = next(topdir.glob(f"{cs}*piem_vda.csv"))
     else:
         file_path = os.path.join(topdir, "OI_regrid_mask_piem_vda_unet.csv")
-    # TODO: è quello corretto?
+    # TODO: è quello corretto? verificare dimensioni maschera!!
     assert os.path.exists(file_path), f"File {file_path} does not exist"
     mask = pd.read_csv(file_path, sep=";", header=None).to_numpy()
     indices = np.where(mask == 1)
