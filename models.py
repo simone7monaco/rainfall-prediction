@@ -43,7 +43,7 @@ class SegmentationModel(pl.LightningModule):
 
 	def load_data(self):
 		case_study_max, available_models, train_dates, val_dates, test_dates, indices_one, indices_zero, mask, nx, ny = io.get_casestudy_stuff(
-			self.hparams.input_path, self.hparams.split_idx, self.hparams.n_split, self.hparams.case_study, ispadded=False # False
+			self.hparams.input_path, self.hparams.split_idx, self.hparams.n_split, self.hparams.case_study, ispadded=True # False
 		)
 		self.x_train, self.y_train, in_features, out_features = io.load_data('unet', self.hparams.input_path, train_dates, case_study_max, indices_one, indices_zero, available_models)
 		self.x_val, self.y_val, in_features, out_features = io.load_data('unet', self.hparams.input_path, val_dates, case_study_max, indices_one, indices_zero, available_models)
