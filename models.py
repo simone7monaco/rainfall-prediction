@@ -2,6 +2,7 @@ from pathlib import Path
 from utils import io
 from PIL import Image
 import pandas as pd
+import wandb
 
 import torch
 import torch.nn as nn
