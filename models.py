@@ -6,7 +6,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 torch.set_float32_matmul_precision('high')
-NUM_WORKERS = 0
+NUM_WORKERS = 64
 
 from torch.utils.data import DataLoader
 from utils.datasets import NWPDataset
@@ -26,7 +26,7 @@ class SegmentationModel(pl.LightningModule):
 			self.cnn = ExtraUNet(self.in_features, self.out_features, image_shape=(self.x_train[0].shape[1], self.x_train[0].shape[2]), use_attention=True)
 		else:
 			raise NotImplementedError(f'Model {self.hparams.network_model} not implemented')
-		self.loss = nn.MSELoss()
+		self.loss = nn.L1Loss()
 
 		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
 		self.metrics = []
