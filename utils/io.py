@@ -152,7 +152,7 @@ def load_data_2d_unet(
         for model_name in available_models:
             _mdl_data = get_model(topdir, model_name, date, case_study_max)
             _mdl_data=np.hstack((_mdl_data,np.zeros((_mdl_data.shape[0], int(2**np.ceil(np.log2(_mdl_data.shape[1]))) - _mdl_data.shape[1])))) # **update:** this was hardcoded as (96, 12) [12 supposed to be 128]
-            _mdl_data[indices_zero] = 0
+            #_mdl_data[indices_zero] = 0
             # print(model_name)
             # plt.imshow(_mdl_data)
             # plt.show()
