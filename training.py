@@ -72,8 +72,8 @@ def main(args):
 	if model.hparams.mcdropout:
 		model.get_monte_carlo_predictions()
 		model.eval_proba(save_dir=Path('proba'))
-	
-	trainer.test(model)
+	else:
+		trainer.test(model)
 
 
 if __name__ == '__main__':
