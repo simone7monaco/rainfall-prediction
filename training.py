@@ -34,7 +34,7 @@ def main(args):
 	scratch_path = Path("/home/students/s265780/data")
 	# scratch_path = Path("/home/monaco/MultimodelPreci")
 
-	input_path = scratch_path / "case_study" / args.case_study
+	input_path = scratch_path / args.case_study
 	output_path = Path('lightning_logs')
 	output_path /= f'{args.network_model}'
 	
@@ -53,7 +53,7 @@ def main(args):
 		
 		model = SegmentationModel(**args.__dict__)
 		trainer = pl.Trainer(
-			accelerator='gpu' if cuda.is_available() else 0,
+			accelerator='gpu' if cuda.is_available() else 'cpu',
 			max_epochs=args.epochs,
 			callbacks=[model_checkpoint],
 			log_every_n_steps=1,
@@ -64,7 +64,7 @@ def main(args):
 		print(f"\nLoading best model ({model_checkpoint.best_model_path})")
 		model = SegmentationModel.load_from_checkpoint(model_checkpoint.best_model_path)
 	else:
-		trainer = pl.Trainer(accelerator='gpu' if cuda.is_available() else 0)
+		trainer = pl.Trainer(accelerator='gpu' if cuda.is_available() else 'cpu')
 		print(f"\n⬆️  Loading checkpoint {args.load_checkpoint}")
 		model = SegmentationModel.load_from_checkpoint(args.load_checkpoint)
 		
