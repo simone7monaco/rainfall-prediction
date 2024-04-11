@@ -86,8 +86,7 @@ class SegmentationModel(pl.LightningModule):
 		y_hat = self.forward(x, ev_date) # shape (n_repetitions*n_samples, C, H, W)
 		loss = self.training_loss(y_hat, y)
 		self.train_losses.append([self.current_epoch, loss.item()])
-		self.log("train_loss", loss)
-		self.log("train_rmse", self.rmse(loss), prog_bar=True)
+		self.log("train_L1loss", loss, prog_bar=True)
 
 		return loss
 
