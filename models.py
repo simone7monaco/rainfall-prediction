@@ -188,6 +188,7 @@ class SegmentationModel(pl.LightningModule):
 
 		print(f"MCD RMSE", self.rmse(loss))
 		print(f"MCD variance", variance.mean().item())
+		self.log("test rmse", self.rmse(loss))
 		# print(f"MCD entropy", entropy.mean().item())
 		# print(f"MCD mutual info", mutual_info.mean().item())
 
