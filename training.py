@@ -1,11 +1,14 @@
 import argparse
 from pathlib import Path
 
+import wandb
 from torch import cuda
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from pytorch_lightning.loggers import WandbLogger
+
 
 from models import SegmentationModel
 
@@ -28,7 +31,7 @@ def get_args(args=None):
 
 def main(args):
 	pl.seed_everything(args.seed)
-	scratch_path = Path("/media/monaco/DATA")
+	scratch_path = Path("/home/students/s265780/data")
 	# scratch_path = Path("/home/monaco/MultimodelPreci")
 
 	input_path = scratch_path / "case_study" / args.case_study
@@ -37,7 +40,12 @@ def main(args):
 	
 	args.input_path = input_path
     
-	# logger = CSVLogger(output_path, name=args.network_model)
+	if args.epochs > 1:
+		logger = WandbLogger(project='rainfall_prediction')   
+		# add your batch size to the wandb config
+		logger.experiment.config["batch_size"] = 32
+	else:
+		logger = CSVLogger(output_path, name=args.network_model)
 
 	if not args.load_checkpoint:
 		early_stop = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=10, verbose=False, mode="min")
@@ -49,7 +57,7 @@ def main(args):
 			max_epochs=args.epochs,
 			callbacks=[model_checkpoint],
 			log_every_n_steps=1,
-			# logger=logger, # default is TensorBoard
+			logger=logger # default is TensorBoard
 		)
 		trainer.fit(model)
 
