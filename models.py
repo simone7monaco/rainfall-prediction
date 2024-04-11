@@ -26,7 +26,8 @@ class SegmentationModel(pl.LightningModule):
 			self.cnn = ExtraUNet(self.in_features, self.out_features, image_shape=(self.x_train[0].shape[1], self.x_train[0].shape[2]), use_attention=True)
 		else:
 			raise NotImplementedError(f'Model {self.hparams.network_model} not implemented')
-		self.loss = nn.L1Loss()
+		self.loss = nn.MSELoss()
+		self.training_loss = nn.L1Loss()
 
 		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
 		self.metrics = []
@@ -83,7 +84,7 @@ class SegmentationModel(pl.LightningModule):
 	def training_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
 		y_hat = self.forward(x, ev_date) # shape (n_repetitions*n_samples, C, H, W)
-		loss = self.loss(y_hat, y)
+		loss = self.training_loss(y_hat, y)
 		self.train_losses.append([self.current_epoch, loss.item()])
 		self.log("train_loss", loss)
 		self.log("train_rmse", self.rmse(loss), prog_bar=True)
