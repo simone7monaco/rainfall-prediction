@@ -40,7 +40,7 @@ class SegmentationModel(pl.LightningModule):
 	def forward(self, x, times):
 		if isinstance(self.cnn, ExtraUNet):
 			return self.cnn(x, times)
-		return self.cnn(x) *self.mask
+		return self.cnn(x) *self.mask.cpu()
 
 	def load_data(self):
 		case_study_max, available_models, train_dates, val_dates, test_dates, indices_one, indices_zero, mask, nx, ny = io.get_casestudy_stuff(
