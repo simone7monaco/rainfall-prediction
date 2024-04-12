@@ -166,7 +166,7 @@ class SegmentationModel(pl.LightningModule):
 				for batch in self.test_dataloader():
 					x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
 					x = x.to('cuda')
-					output = self.cnn(x)
+					output = self.cnn(x) *self.mask.cuda()
 					predictions.append(output)
 				predictions = torch.cat(predictions, dim=0) # shape (n_samples, C, H, W)
 			dropout_predictions.append(predictions)
@@ -186,17 +186,17 @@ class SegmentationModel(pl.LightningModule):
 		
 		y_all = torch.cat([batch['y'] for batch in self.test_dataloader()], dim=0)
 		loss = self.loss(mean, y_all.cuda())
-		print(f"y_all shape {y_all.shape}")
-		print(f"mean shape {mean.shape}")
+		#print(f"y_all shape {y_all.shape}")
+		#print(f"mean shape {mean.shape}")
 
 		print(f"MCD RMSE", self.rmse(loss))
 		print(f"MCD variance", variance.mean().item())
-		#wandb.log({"test rmse": self.rmse(loss)})
+		# wandb.log({"test rmse": self.rmse(loss)})
 		# print(f"MCD entropy", entropy.mean().item())
 		# print(f"MCD mutual info", mutual_info.mean().item())
 
 		for metric in self.metrics:
-			print(f"MCD {metric.__name__}", metric(mean, y))
+			print(f"MCD {metric.__name__}", metric(mean, y_all))
 
 	def eval_proba(self, lv_thresholds=[1, 5, 10, 20, 50, 100, 150], forward_passes=20, save_dir=None):
 		"""
@@ -220,7 +220,7 @@ class SegmentationModel(pl.LightningModule):
 				predictions = []
 				for batch in self.test_dataloader():
 					x = batch['x'].cuda()
-					output = self.cnn(x)
+					output = self.cnn(x) *self.mask.cuda()
 					predictions.append(output)
 				predictions = torch.cat(predictions, dim=0)
 				predictions = predictions * self.case_study_max
@@ -248,8 +248,8 @@ class SegmentationModel(pl.LightningModule):
 			# print(f"y_all shape {y_all.shape}")
 			# print(f"input_model_all shape {x_all.shape}")
 			# print(f"probabilities shape {probabilities[lv].shape}")
-			print(f"prob_input_models shape {prob_input_models.shape}")
-			print(f"diff shape {(prob_input_models - y_all.gt(lv).float()).shape}")
+			# print(f"prob_input_models shape {prob_input_models.shape}")
+			# print(f"diff shape {(prob_input_models - y_all.gt(lv).float()).shape}")
 
 			input_models_brier_score[lv] = ((prob_input_models - y_all.gt(lv).float())**2).mean().item()
 			print(f"Brier score for threshold {lv} mm: {brier_scores[lv]:.4f}")
