@@ -248,6 +248,7 @@ class SegmentationModel(pl.LightningModule):
 			# print(f"y_all shape {y_all.shape}")
 			# print(f"input_model_all shape {x_all.shape}")
 			# print(f"probabilities shape {probabilities[lv].shape}")
+			print(f"prob_input_models shape {prob_input_models.shape}")
 			input_models_brier_score[lv] = ((prob_input_models - y_all.gt(lv).float())**2).mean().item()
 			print(f"Brier score for threshold {lv} mm: {brier_scores[lv]:.4f}")
 			print(f">Brier score for input models: {input_models_brier_score[lv]:.4f}\n")
