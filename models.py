@@ -186,6 +186,8 @@ class SegmentationModel(pl.LightningModule):
 		
 		y_all = torch.cat([batch['y'] for batch in self.test_dataloader()], dim=0)
 		loss = self.loss(mean, y_all.cuda())
+		print(f"y_all shape {y_all.shape}")
+		print(f"mean shape {mean.shape}")
 
 		print(f"MCD RMSE", self.rmse(loss))
 		print(f"MCD variance", variance.mean().item())
@@ -243,9 +245,9 @@ class SegmentationModel(pl.LightningModule):
 
 			brier_scores[lv] = ((probabilities[lv] - y_all.cuda().gt(lv).float())**2).mean().item()
 			prob_input_models = (x_all > lv).float()
-			print(f"y_all shape {y_all.shape}")
-			print(f"input_model_all shape {x_all.shape}")
-			print(f"probabilities shape {probabilities[lv].shape}")
+			# print(f"y_all shape {y_all.shape}")
+			# print(f"input_model_all shape {x_all.shape}")
+			# print(f"probabilities shape {probabilities[lv].shape}")
 			input_models_brier_score[lv] = ((prob_input_models - y_all.gt(lv).float())**2).mean().item()
 			print(f"Brier score for threshold {lv} mm: {brier_scores[lv]:.4f}")
 			print(f">Brier score for input models: {input_models_brier_score[lv]:.4f}\n")
