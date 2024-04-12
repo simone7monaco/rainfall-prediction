@@ -189,7 +189,7 @@ class SegmentationModel(pl.LightningModule):
 
 		print(f"MCD RMSE", self.rmse(loss))
 		print(f"MCD variance", variance.mean().item())
-		wandb.log({"test rmse": self.rmse(loss)})
+		#wandb.log({"test rmse": self.rmse(loss)})
 		# print(f"MCD entropy", entropy.mean().item())
 		# print(f"MCD mutual info", mutual_info.mean().item())
 
@@ -249,7 +249,7 @@ class SegmentationModel(pl.LightningModule):
 			input_models_brier_score[lv] = ((prob_input_models - y_all.gt(lv).float())**2).mean().item()
 			print(f"Brier score for threshold {lv} mm: {brier_scores[lv]:.4f}")
 			print(f">Brier score for input models: {input_models_brier_score[lv]:.4f}\n")
-			wandb.log({f"Brier score {lv} mm": brier_scores[lv]})
+			#wandb.log({f"Brier score {lv} mm": brier_scores[lv]})
 		
 		import matplotlib.pyplot as plt
 		import seaborn as sns
