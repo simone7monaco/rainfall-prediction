@@ -69,10 +69,10 @@ def main(args):
 		model = SegmentationModel.load_from_checkpoint(args.load_checkpoint)
 		
 
-	#if model.hparams.mcdropout:
+	if model.hparams.mcdropout:
 		model.get_monte_carlo_predictions()
 		model.eval_proba(save_dir=Path('proba'))
-	#else:
+	else:
 		trainer.test(model)
 
 
