@@ -40,7 +40,7 @@ def main(args):
 	
 	args.input_path = input_path
     
-	if args.epochs > 1:
+	if args.epochs > 1 and not args.load_checkpoint:
 		logger = WandbLogger(project='rainfall_prediction')   
 		# add your batch size to the wandb config
 		logger.experiment.config["batch_size"] = 32
