@@ -29,6 +29,7 @@ class SegmentationModel(pl.LightningModule):
 			raise NotImplementedError(f'Model {self.hparams.network_model} not implemented')
 		self.loss = nn.MSELoss()
 		self.training_loss = nn.L1Loss()
+		self.brierLoss = BrierLoss()
 
 		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
 		self.metrics = []
@@ -83,16 +84,11 @@ class SegmentationModel(pl.LightningModule):
 		return DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False, num_workers=NUM_WORKERS)
 	
 	def training_step(self, batch, batch_idx):
-		lv_thresholds=[1/self.case_study_max, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
-     
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
 		y_hat = self.forward(x, ev_date) # shape (n_repetitions*n_samples, C, H, W)
 		loss = self.training_loss(y_hat, y)
   
-		brier_score = 0
-		for lv in lv_thresholds:
-			y_hat_prob = (y_hat > lv).float()
-			brier_score += ((y_hat_prob - y.gt(lv).float())**2).mean()
+		brier_score = self.brierLoss(y_hat, y)
       
 		self.train_losses.append([self.current_epoch, loss.item()])
 		self.log("train_L1loss", loss, prog_bar=True) 
@@ -277,3 +273,18 @@ class SegmentationModel(pl.LightningModule):
 		plt.legend()
 		plt.savefig("brier_scores.png")
 		# plt.savefig(Path(self.logger.log_dir)/"brier_scores.png")
+  
+
+class BrierLoss(nn.Module):
+    def __init__(self):
+        super(BrierLoss, self).__init__()
+        
+        self.case_study_max = 483.717752
+        self.lv_thresholds=[1/self.case_study_max, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
+
+    def forward(self, predictions, targets):
+        brier_score = 0
+        for lv in self.lv_thresholds:
+            y_hat_prob = (predictions > lv).float()
+            brier_score += ((y_hat_prob - targets.gt(lv).float())**2).mean()
+        return brier_score
