@@ -98,7 +98,7 @@ class SegmentationModel(pl.LightningModule):
 		for lv in lv_thresholds:
 			probabilities[lv] = torch.stack(probabilities[lv], dim=0).mean(dim=0)
 
-		brier_score = self.training_loss(probabilities, y)
+		brier_score = self.brierLoss(probabilities, y)
       
 		#self.train_losses.append([self.current_epoch, loss.item()])
 		#self.log("train_L1loss", loss, prog_bar=True) 
