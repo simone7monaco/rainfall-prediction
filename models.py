@@ -297,5 +297,4 @@ class BrierLoss(nn.Module):
         brier_score = torch.tensor(.0, requires_grad=True)
         for lv in self.lv_thresholds:
             brier_score = brier_score + ((predictions[lv].float() - targets.gt(lv).float())**2).mean()
-            
         return brier_score
