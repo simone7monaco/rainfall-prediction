@@ -28,7 +28,7 @@ class SegmentationModel(pl.LightningModule):
 		else:
 			raise NotImplementedError(f'Model {self.hparams.network_model} not implemented')
 		self.loss = nn.MSELoss()
-		self.training_loss = torch.nn.CrossEntropyLoss() #nn.L1Loss()
+		self.training_loss = nn.L1Loss()
 
 		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
 		self.metrics = []
@@ -95,7 +95,7 @@ class SegmentationModel(pl.LightningModule):
 			brier_score += ((prob_x - y.gt(lv).float())**2).mean()
       
 		self.train_losses.append([self.current_epoch, loss.item()])
-		self.log("train_CrossEntropyloss", loss, prog_bar=True) #L1
+		self.log("train_L1loss", loss, prog_bar=True) 
 		self.log("train_brier_score", brier_score)
 
 
