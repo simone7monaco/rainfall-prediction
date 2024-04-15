@@ -30,7 +30,7 @@ class SegmentationModel(pl.LightningModule):
 		self.loss = nn.MSELoss()
 		self.training_loss = nn.L1Loss()
 		self.brierLoss = BrierLoss()
-		self.sigmoid = nn.Sigmoid()
+		#self.sigmoid = nn.Sigmoid()
 
 		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
 		self.metrics = []
@@ -89,7 +89,7 @@ class SegmentationModel(pl.LightningModule):
 		y_hat = self.forward(x, ev_date) # shape (n_repetitions*n_samples, C, H, W)
 		loss = self.training_loss(y_hat, y)
   
-		lv_thresholds=[1/self.case_study_max, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
+		lv_thresholds=[1/self.case_study_max]#, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
 		probabilities = {lv: [] for lv in lv_thresholds}
 		for i in range(20):
 			predictions = self.cnn(x) *self.mask.cuda()
