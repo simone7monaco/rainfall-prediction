@@ -90,13 +90,13 @@ class SegmentationModel(pl.LightningModule):
 		#loss = self.training_loss(y_hat, y)
   
 		lv_thresholds=[50/self.case_study_max]#, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
-		probabilities = {lv: [] for lv in lv_thresholds}
+		probabilities = [] #{lv: [] for lv in lv_thresholds}
 		for i in range(1):
 			predictions = self.forward(x, ev_date)
-			for lv in lv_thresholds:
-				probabilities[lv].append(self.sigmoid(predictions - lv))
-		for lv in lv_thresholds:
-			probabilities[lv] = torch.stack(probabilities[lv], dim=0).mean(dim=0)
+			#for lv in lv_thresholds:
+			probabilities.append(self.sigmoid(predictions - 50/self.case_study_max)) #[lv], lv
+		#for lv in lv_thresholds:
+		probabilities = torch.stack(probabilities, dim=0).mean(dim=0)
 
 		brier_score = self.training_loss(probabilities, y)
       
