@@ -92,9 +92,9 @@ class SegmentationModel(pl.LightningModule):
 		lv_thresholds=[1/self.case_study_max]#, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
 		probabilities = {lv: [] for lv in lv_thresholds}
 		for i in range(20):
-			predictions = self.cnn(x) *self.mask.cuda()
+			predictions = self.cnn(x) *self.mask.cuda() *self.case_study_max
 			for lv in lv_thresholds:
-				probabilities[lv].append((self.sigmoid(predictions)))
+				probabilities[lv].append((self.sigmoid(predictions))) # -lv
 		for lv in lv_thresholds:
 			probabilities[lv] = torch.stack(probabilities[lv], dim=0).mean(dim=0)
 
