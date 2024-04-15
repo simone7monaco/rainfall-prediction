@@ -100,8 +100,8 @@ class SegmentationModel(pl.LightningModule):
 
 		brier_score = self.brierLoss(probabilities, y)
       
-		self.train_losses.append([self.current_epoch, loss.item()])
-		self.log("train_L1loss", loss, prog_bar=True) 
+		#self.train_losses.append([self.current_epoch, loss.item()])
+		#self.log("train_L1loss", loss, prog_bar=True) 
 		self.log("train_brier_score", brier_score)
 
 		return brier_score #loss
