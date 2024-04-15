@@ -83,8 +83,7 @@ class SegmentationModel(pl.LightningModule):
 		return DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False, num_workers=NUM_WORKERS)
 	
 	def training_step(self, batch, batch_idx):
-		lv_thresholds=[1, 5, 10, 20, 50, 100, 150]
-		lv_thresholds=lv_thresholds/self.case_study_max
+		lv_thresholds=[1/self.case_study_max, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
      
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
 		y_hat = self.forward(x, ev_date) # shape (n_repetitions*n_samples, C, H, W)
