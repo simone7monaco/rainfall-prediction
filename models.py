@@ -280,7 +280,8 @@ class BrierLoss(nn.Module):
         super(BrierLoss, self).__init__()
         
         self.case_study_max = 483.717752
-        self.lv_thresholds=[1/self.case_study_max, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
+        #self.lv_thresholds=[1/self.case_study_max, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
+        self.lv_thresholds=[1/self.case_study_max]
 
     def forward(self, predictions, targets):
         brier_score = torch.tensor(.0, requires_grad=True)
