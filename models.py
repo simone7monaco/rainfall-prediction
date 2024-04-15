@@ -94,7 +94,7 @@ class SegmentationModel(pl.LightningModule):
 		for i in range(20):
 			predictions = self.cnn(x) *self.mask.cuda()
 			for lv in lv_thresholds:
-				probabilities[lv].append((self.sigmoid(predictions - lv)))
+				probabilities[lv].append((self.sigmoid(predictions)))
 		for lv in lv_thresholds:
 			probabilities[lv] = torch.stack(probabilities[lv], dim=0).mean(dim=0)
 
