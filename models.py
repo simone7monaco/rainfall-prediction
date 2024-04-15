@@ -91,8 +91,8 @@ class SegmentationModel(pl.LightningModule):
   
 		brier_score = 0
 		for lv in lv_thresholds:
-			prob_x = (x > lv).float()
-			brier_score += ((prob_x - y.gt(lv).float())**2).mean()
+			y_hat_prob = (y_hat > lv).float()
+			brier_score += ((y_hat_prob - y.gt(lv).float())**2).mean()
       
 		self.train_losses.append([self.current_epoch, loss.item()])
 		self.log("train_L1loss", loss, prog_bar=True) 
