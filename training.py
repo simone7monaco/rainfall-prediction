@@ -25,6 +25,7 @@ def get_args(args=None):
 	parser.add_argument("--mcdropout", type=float, default=0.2)
 	parser.add_argument("--load_checkpoint", type=Path, default=None)
 	parser.add_argument("--seed", type=int, default=42)
+	parser.add_argument("--forward_passes", type=int, default=40)
 	args = parser.parse_args(args)
 	return args
 	
@@ -70,8 +71,8 @@ def main(args):
 		
 
 	if model.hparams.mcdropout:
-		model.get_monte_carlo_predictions()
-		model.eval_proba(save_dir=Path('proba'))
+		model.get_monte_carlo_predictions(forward_passes=args.forward_passes)
+		model.eval_proba(save_dir=Path('proba'), forward_passes=args.forward_passes)
 	else:
 		trainer.test(model)
 
