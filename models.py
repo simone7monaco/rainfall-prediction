@@ -104,7 +104,7 @@ class SegmentationModel(pl.LightningModule):
 		self.log("train_L1loss", loss, prog_bar=True) 
 		self.log("train_brier_score", brier_score)
 
-		return brier_score + loss
+		return brier_score/100 + loss
 
 	def validation_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
