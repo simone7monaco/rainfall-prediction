@@ -83,13 +83,23 @@ class SegmentationModel(pl.LightningModule):
 		return DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False, num_workers=NUM_WORKERS)
 	
 	def training_step(self, batch, batch_idx):
+		lv_thresholds=[1, 5, 10, 20, 50, 100, 150]
+     
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
 		y_hat = self.forward(x, ev_date) # shape (n_repetitions*n_samples, C, H, W)
 		loss = self.training_loss(y_hat, y)
+  
+		brier_score = 0
+		for lv in lv_thresholds:
+			prob_x = (x > lv).float()
+			brier_score += ((prob_x - y.gt(lv).float())**2).mean()
+      
 		self.train_losses.append([self.current_epoch, loss.item()])
 		self.log("train_L1loss", loss, prog_bar=True)
+		self.log("train_brier_score", brier_score)
 
-		return loss
+
+		return brier_score #loss
 
 	def validation_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
@@ -267,7 +277,3 @@ class SegmentationModel(pl.LightningModule):
 		plt.legend()
 		plt.savefig("brier_scores.png")
 		# plt.savefig(Path(self.logger.log_dir)/"brier_scores.png")
-
-
-		
-			
