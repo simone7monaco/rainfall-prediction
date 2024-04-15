@@ -30,7 +30,7 @@ class SegmentationModel(pl.LightningModule):
 		self.loss = nn.MSELoss()
 		self.training_loss = nn.L1Loss()
 		self.brierLoss = BrierLoss()
-		self.sigmoid = nn.Softmax()
+		self.sigmoid = nn.Sigmoid()
 
 		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
 		self.metrics = []
