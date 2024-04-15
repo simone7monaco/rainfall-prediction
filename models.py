@@ -88,7 +88,16 @@ class SegmentationModel(pl.LightningModule):
 		y_hat = self.forward(x, ev_date) # shape (n_repetitions*n_samples, C, H, W)
 		loss = self.training_loss(y_hat, y)
   
-		brier_score = self.brierLoss(y_hat, y)
+		lv_thresholds=[1/self.case_study_max, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
+		probabilities = {lv: [] for lv in lv_thresholds}
+		for i in range(20):
+			predictions = self.cnn(x) *self.mask.cuda() * self.case_study_max
+			for lv in lv_thresholds:
+				probabilities[lv].append((predictions > lv).float())
+		for lv in lv_thresholds:
+			probabilities[lv] = torch.stack(probabilities[lv], dim=0).mean(dim=0)
+
+		brier_score = self.brierLoss(probabilities, y)
       
 		self.train_losses.append([self.current_epoch, loss.item()])
 		self.log("train_L1loss", loss, prog_bar=True) 
@@ -196,8 +205,8 @@ class SegmentationModel(pl.LightningModule):
 		#print(f"mean shape {mean.shape}")
 
 		print(f"MCD RMSE", self.rmse(loss))
-		print(f"forward pass ", forward_passes)
 		print(f"MCD variance", variance.mean().item())
+		print(f"forward pass ", forward_passes)
 		wandb.log({"test rmse": self.rmse(loss)})
 		# print(f"MCD entropy", entropy.mean().item())
 		# print(f"MCD mutual info", mutual_info.mean().item())
@@ -287,5 +296,5 @@ class BrierLoss(nn.Module):
     def forward(self, predictions, targets):
         brier_score = torch.tensor(.0, requires_grad=True)
         for lv in self.lv_thresholds:
-            brier_score = brier_score + ((predictions.gt(lv).float() - targets.gt(lv).float())**2).mean()
+            brier_score = brier_score + ((predictions[lv].float() - targets.gt(lv).float())**2).mean()
         return brier_score
