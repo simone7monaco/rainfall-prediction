@@ -46,7 +46,7 @@ def main(args):
 		# add your batch size to the wandb config
 		logger.experiment.config["batch_size"] = 32
 	else:
-		logger = CSVLogger(output_path, name=args.network_model)
+		logger = WandbLogger(project='rainfall_prediction_trash')
 
 	if not args.load_checkpoint:
 		early_stop = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=10, verbose=False, mode="min")
