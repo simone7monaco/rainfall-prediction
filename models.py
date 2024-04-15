@@ -86,8 +86,8 @@ class SegmentationModel(pl.LightningModule):
 	
 	def training_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
-		y_hat = self.forward(x, ev_date) # shape (n_repetitions*n_samples, C, H, W)
-		loss = self.training_loss(y_hat, y)
+		#y_hat = self.forward(x, ev_date) # shape (n_repetitions*n_samples, C, H, W)
+		#loss = self.training_loss(y_hat, y)
   
 		lv_thresholds=[50/self.case_study_max]#, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
 		probabilities = {lv: [] for lv in lv_thresholds}
@@ -103,7 +103,6 @@ class SegmentationModel(pl.LightningModule):
 		self.train_losses.append([self.current_epoch, loss.item()])
 		self.log("train_L1loss", loss, prog_bar=True) 
 		self.log("train_brier_score", brier_score)
-
 
 		return brier_score #loss
 
