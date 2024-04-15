@@ -89,14 +89,12 @@ class SegmentationModel(pl.LightningModule):
 		y_hat = self.forward(x, ev_date) # shape (n_repetitions*n_samples, C, H, W)
 		loss = self.training_loss(y_hat, y)
   
-		lv_thresholds=[50/self.case_study_max]#, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
-		probabilities = {lv: [] for lv in lv_thresholds}
-		for i in range(1):
+		lv_threshold=50/self.case_study_max#, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
+		probabilities = []
+		for i in range(5):
 			predictions = self.cnn(x) *self.mask.cuda()
-			for lv in lv_thresholds:
-				probabilities[lv].append(self.sigmoid(predictions - lv))
-		for lv in lv_thresholds:
-			probabilities[lv] = torch.stack(probabilities[lv], dim=0).mean(dim=0)
+			probabilities.append(self.sigmoid(predictions - lv_threshold))
+		probabilities = torch.stack(probabilities, dim=0).mean(dim=0)
 
 		brier_score = self.brierLoss(probabilities, y)
       
@@ -292,10 +290,7 @@ class BrierLoss(nn.Module):
         
         self.case_study_max = 483.717752
         #self.lv_thresholds=[1/self.case_study_max, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
-        self.lv_thresholds=[50/self.case_study_max]
+        self.lv_threshold=50/self.case_study_max
 
     def forward(self, predictions, targets):
-        brier_score = torch.tensor(.0, requires_grad=True)
-        for lv in self.lv_thresholds:
-            brier_score = brier_score + ((predictions[lv].float() - targets.gt(lv).float())**2).mean()
-        return brier_score
+        return ((predictions - targets.gt(self.lv_threshold).float())**2).mean()
