@@ -196,6 +196,7 @@ class SegmentationModel(pl.LightningModule):
 		#print(f"mean shape {mean.shape}")
 
 		print(f"MCD RMSE", self.rmse(loss))
+		print(f"forward pass ", forward_passes)
 		print(f"MCD variance", variance.mean().item())
 		wandb.log({"test rmse": self.rmse(loss)})
 		# print(f"MCD entropy", entropy.mean().item())
