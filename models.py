@@ -28,7 +28,7 @@ class SegmentationModel(pl.LightningModule):
 		else:
 			raise NotImplementedError(f'Model {self.hparams.network_model} not implemented')
 		self.loss = nn.MSELoss()
-		self.training_loss = nn.MSELoss() #MSLELoss() 
+		self.training_loss = nn.L1Loss() #MSLELoss() 
 		self.brierLoss = BrierLoss()
 		self.sigmoid = nn.Sigmoid()
 
