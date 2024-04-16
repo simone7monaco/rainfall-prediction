@@ -28,7 +28,7 @@ class SegmentationModel(pl.LightningModule):
 		else:
 			raise NotImplementedError(f'Model {self.hparams.network_model} not implemented')
 		self.loss = nn.MSELoss()
-		self.training_loss = nn.L1Loss()
+		self.training_loss = MSLELoss() ##nn.L1Loss()
 		self.brierLoss = BrierLoss()
 		self.sigmoid = nn.Sigmoid()
 
@@ -298,3 +298,11 @@ class BrierLoss(nn.Module):
         for lv in self.lv_thresholds:
             brier_score = brier_score + ((predictions[lv].float() - targets.gt(lv).float())**2).mean()
         return brier_score
+    
+class MSLELoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.mse = nn.MSELoss()
+        
+    def forward(self, pred, actual):
+        return self.mse(torch.log(pred + 1), torch.log(actual + 1))
