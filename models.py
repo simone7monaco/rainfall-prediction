@@ -305,4 +305,4 @@ class MSLELoss(nn.Module):
         self.mse = nn.MSELoss()
         
     def forward(self, pred, actual):
-        return self.mse(torch.log(pred*10 + 1), torch.log(actual*10 + 1))
+        return self.mse(torch.log(pred*50 + 1), torch.log(actual*50 + 1))
