@@ -44,10 +44,10 @@ class UNet(nn.Module):
         # -------
 
         self.enc1 = EncBlock(in_features, 64) # input: 572x572x3
-        self.enc2 = EncBlock(64, 128) # input: 284x284x64
-        self.enc3 = EncBlock(128, 256) # input: 140x140x128
-        self.enc4 = EncBlock(256, 512) # input: 68x68x256
-        self.enc5 = EncBlock(512, 1024) # input: 32x32x512
+        self.enc2 = EncBlock(64, 128, dropout) # input: 284x284x64
+        self.enc3 = EncBlock(128, 256, dropout) # input: 140x140x128
+        self.enc4 = EncBlock(256, 512, dropout) # input: 68x68x256
+        self.enc5 = EncBlock(512, 1024, dropout) # input: 32x32x512
         
         # Decoder, dropout only here
         self.dec1 = DecBlock(1024, 512, dropout)
