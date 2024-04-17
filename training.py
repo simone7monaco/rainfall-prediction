@@ -1,3 +1,6 @@
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+
 import argparse
 from pathlib import Path
 
@@ -6,6 +9,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+import yaml
 
 from models import SegmentationModel
 
@@ -13,10 +17,10 @@ from models import SegmentationModel
 def get_args(args=None):
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--case_study", "-c", type=str, default="24h_10mmMAX_OI", choices=['24h_10mmMAX_OI', '24h_10mmMAX_radar'])
-	parser.add_argument("--network_model", type=str, default="unet")
+	parser.add_argument("--network_model", "-m", type=str, default="unet")
 	parser.add_argument("--batch_size", type=int, default=32)
-	parser.add_argument("--split_idx", type=str, default="701515")
-	parser.add_argument("--n_split", type=int, default=9)
+	# parser.add_argument("--split_idx", type=str, default="701515")
+	parser.add_argument("--n_split", type=int, default=8)
 	parser.add_argument("--lr", type=float, default=1e-4)
 	parser.add_argument("--epochs", "-e", type=int, default=300)
 	parser.add_argument("--mcdropout", type=float, default=0)
@@ -28,10 +32,15 @@ def get_args(args=None):
 
 def main(args):
 	pl.seed_everything(args.seed)
-	scratch_path = Path("/media/monaco/DATA")
-	# scratch_path = Path("/home/monaco/MultimodelPreci")
 
-	input_path = scratch_path / "case_study" / args.case_study
+	scratch_path = Path("/media/monaco/DATA1/case_study")
+	conf_dev = Path("config_dev.yaml")
+	if conf_dev.exists():
+		with open(conf_dev, 'r') as f:
+			conf_dev = yaml.safe_load(f)
+		scratch_path = Path(conf_dev['scratch_path'])
+
+	input_path = scratch_path / args.case_study
 	output_path = Path('lightning_logs')
 	output_path /= f'{args.network_model}'
 	
@@ -41,14 +50,15 @@ def main(args):
 
 	if not args.load_checkpoint:
 		early_stop = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=10, verbose=False, mode="min")
-		model_checkpoint = ModelCheckpoint(output_path / args.network_model, monitor='val_loss', mode='min', filename='{epoch}-{val_rmse:.2f}')
+		model_checkpoint = ModelCheckpoint(output_path / f"split_{args.n_split}", monitor='val_loss', mode='min', filename='{epoch}-{val_rmse:.2f}')
 		
 		model = SegmentationModel(**args.__dict__)
 		trainer = pl.Trainer(
-			accelerator='gpu' if cuda.is_available() else 0,
+			accelerator='gpu' if cuda.is_available() else 'cpu',
 			max_epochs=args.epochs,
 			callbacks=[model_checkpoint],
 			log_every_n_steps=1,
+			num_sanity_val_steps=0,
 			# logger=logger, # default is TensorBoard
 		)
 		trainer.fit(model)
@@ -56,7 +66,7 @@ def main(args):
 		print(f"\nLoading best model ({model_checkpoint.best_model_path})")
 		model = SegmentationModel.load_from_checkpoint(model_checkpoint.best_model_path)
 	else:
-		trainer = pl.Trainer(accelerator='gpu' if cuda.is_available() else 0)
+		trainer = pl.Trainer(accelerator='gpu' if cuda.is_available() else 'cpu')
 		print(f"\n⬆️  Loading checkpoint {args.load_checkpoint}")
 		model = SegmentationModel.load_from_checkpoint(args.load_checkpoint)
 		
