@@ -306,6 +306,7 @@ class SegmentationModel(pl.LightningModule):
 		import seaborn as sns
 		sns.set_style("whitegrid")
 
+		plt.figure()
 		plt.plot(lv_thresholds, [brier_scores[lv] for lv in lv_thresholds], label='Brier score')
 		plt.plot(lv_thresholds, [input_models_brier_score[lv] for lv in lv_thresholds], label='Input models Brier score')
 		plt.xlabel('Threshold (mm)')
