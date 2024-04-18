@@ -209,8 +209,9 @@ class SegmentationModel(pl.LightningModule):
 		plt.show()
 		plt.savefig("error_variance.png")
   
-		plt.hist(error.cpu().numpy(), bins=np.linspace(0,500, 100))
+		plt.hist(error.cpu().numpy(), bins=np.linspace(0,100, 100))
 		plt.xlabel('Prediction error (mm)')
+		plt.ylabel('')
 		plt.legend()
 		plt.show()
 		plt.savefig("pred_error.png")
@@ -228,7 +229,7 @@ class SegmentationModel(pl.LightningModule):
 		#print(f"y_all shape {y_all.shape}")
 		#print(f"mean shape {mean.shape}")
 
-		print(f"MCD RMSE", self.rmse(loss))
+		print(f"MCD RMSE", self.rmse(loss)/self.case_study_max)
 		print(f"MCD variance", variance.mean().item())
 		print(f"forward pass ", forward_passes)
 		wandb.log({"test rmse": self.rmse(loss)})
