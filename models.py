@@ -241,8 +241,8 @@ class SegmentationModel(pl.LightningModule):
 		# mutual_info = entropy - torch.mean(torch.sum(-dropout_predictions * torch.log(dropout_predictions + 1e-6),
 		# 									dim=-1), dim=0)
 		
-		
-		loss = self.loss(mean, y_all.cuda())
+		y_all = y_all.cuda()
+		loss = self.loss(mean, y_all)
 		#print(f"y_all shape {y_all.shape}")
 		#print(f"mean shape {mean.shape}")
 
