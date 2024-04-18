@@ -350,21 +350,21 @@ class MSLELoss(nn.Module):
 
 
 def freqbias(perc,veri,threshh):
-    hits=np.sum((veri>=threshh)*(perc>=threshh))
-    falsealarms=np.sum((veri<threshh)*(perc>=threshh))
-    misses=np.sum((veri>=threshh)*(perc<threshh))
+    hits=torch.sum((veri>=threshh)*(perc>=threshh))
+    falsealarms=torch.sum((veri<threshh)*(perc>=threshh))
+    misses=torch.sum((veri>=threshh)*(perc<threshh))
     return (hits+falsealarms)/(hits+misses)
 
 def ets(perc,veri,threshh):
-    hits=np.sum((veri>=threshh)*(perc>=threshh))
-    falsealarms=np.sum((veri<threshh)*(perc>=threshh))
-    misses=np.sum((veri>=threshh)*(perc<threshh))
-    correctnegatives=np.sum((veri<threshh)*(perc<threshh))
-    hitsrandom=(hits+misses)*(hits+falsealarms)/np.sum((hits,falsealarms, misses, correctnegatives))
+    hits=torch.sum((veri>=threshh)*(perc>=threshh))
+    falsealarms=torch.sum((veri<threshh)*(perc>=threshh))
+    misses=torch.sum((veri>=threshh)*(perc<threshh))
+    correctnegatives=torch.sum((veri<threshh)*(perc<threshh))
+    hitsrandom=(hits+misses)*(hits+falsealarms)/torch.sum((hits,falsealarms, misses, correctnegatives))
     return (hits-hitsrandom)/(hits+misses+falsealarms-hitsrandom)
 
 def csi(perc,veri,threshh):
-    hits=np.sum((veri>=threshh)*(perc>=threshh))
-    falsealarms=np.sum((veri<threshh)*(perc>=threshh))
-    misses=np.sum((veri>=threshh)*(perc<threshh))
+    hits=torch.sum((veri>=threshh)*(perc>=threshh))
+    falsealarms=torch.sum((veri<threshh)*(perc>=threshh))
+    misses=torch.sum((veri>=threshh)*(perc<threshh))
     return hits/(hits+falsealarms+misses)
