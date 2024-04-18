@@ -256,7 +256,7 @@ class SegmentationModel(pl.LightningModule):
 
 		for metric in self.metrics:
 			for th in self.thresholds:
-				met = metric(mean[:,:,self.mask==1], y_all[:,:,self.mask==1], th)
+				met = metric(mean[:,:,self.mask==1], y_all[:,:,self.mask==1], th).item()
 				wandb.log({f"MCD_{metric.__name__}_{th*self.case_study_max}": met})
 				print(f"MCD_{metric.__name__}_{th*self.case_study_max}", met)
 
