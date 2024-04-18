@@ -186,12 +186,12 @@ class SegmentationModel(pl.LightningModule):
 				predictions = torch.cat(predictions, dim=0) # shape (n_samples, C, H, W)
 			dropout_predictions.append(predictions)
 		dropout_predictions = torch.stack(dropout_predictions, dim=0) # shape (n_forward_passes, n_samples, C, H, W)
-		y_all = torch.cat([batch['y'] for batch in self.test_dataloader()], dim=0)
+		y_all = torch.cat([batch['y'] for batch in self.test_dataloader()], dim=0)*self.mask.cuda()
 
 		# Calculating stats across multiple MCD forward passes 
 		mean = dropout_predictions.mean(dim=0)
 		variance = dropout_predictions.var(dim=0)
-  
+
 		# Calculating variance over error
 		error = torch.abs(mean-y_all.cuda())
 		error = error.flatten().cpu().numpy()*self.case_study_max
@@ -202,7 +202,7 @@ class SegmentationModel(pl.LightningModule):
 		import numpy as np
 		sns.set_style("whitegrid")
 
-		ind = np.where(error>0)
+		ind = np.where(error>0.1)
 		plt.figure()
 		plt.scatter(error[ind], variance[ind])
 		plt.xlabel('Prediction error (mm)')
@@ -210,7 +210,7 @@ class SegmentationModel(pl.LightningModule):
 		plt.savefig("error_variance.png")
   
 		plt.figure()
-		plt.hist(error[error>0.1], bins=np.linspace(0,20, 100))
+		plt.hist(error[ind], bins=np.linspace(0,20, 100))
 		plt.xlabel('Prediction error (mm)')
 		plt.ylabel('')
 		plt.savefig("pred_error.png")
