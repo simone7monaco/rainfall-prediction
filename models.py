@@ -206,7 +206,7 @@ class SegmentationModel(pl.LightningModule):
 		var_mean=[]
 		err_mean=[]
 		for i, bin in enumerate(np.linspace(0, 400, 21)):
-			indx = np.where((error>bin) and (error<=bin+(400/20)))
+			indx = np.where((error>bin) & (error<=bin+(400/20)))
 			var_mean.append(variance[indx].mean())
 			err_mean.append(error[indx].mean())
 
@@ -225,8 +225,8 @@ class SegmentationModel(pl.LightningModule):
 		plt.figure()
 		plt.hist(error[ind], bins=100, log=True)
 		plt.xlabel('Prediction error (mm)')
-		plt.ylabel('')
-		plt.savefig("pred_error_big.png")
+		plt.ylabel('log(# pixel)')
+		plt.savefig("pred_error_log.png")
 		
 
 		# Calculating entropy across multiple MCD forward passes 
