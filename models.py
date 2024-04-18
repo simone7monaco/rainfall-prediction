@@ -202,14 +202,14 @@ class SegmentationModel(pl.LightningModule):
 		import numpy as np
 		sns.set_style("whitegrid")
 
-		plt.scatter(error.cpu().numpy(), variance.cpu().numpy())
+		plt.plot(error.cpu().numpy(), variance.cpu().numpy())
 		plt.xlabel('Prediction error (mm)')
 		plt.ylabel('variance')
 		plt.legend()
 		plt.show()
 		plt.savefig("error_variance.png")
   
-		plt.hist(error, bins=np.linspace(0,500, 100))
+		plt.hist(error.cpu().numpy(), bins=np.linspace(0,500, 100))
 		plt.xlabel('Prediction error (mm)')
 		plt.legend()
 		plt.show()
