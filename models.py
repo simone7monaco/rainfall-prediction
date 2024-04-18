@@ -194,7 +194,7 @@ class SegmentationModel(pl.LightningModule):
   
 		# Calculating variance over error
 		error = torch.abs(mean-y_all.cuda())
-		error = error.flatten().cpu().numpy()
+		error = error.flatten().cpu().numpy()*self.case_study_max
 		variance = variance.flatten().cpu().numpy()
   
 		import matplotlib.pyplot as plt
@@ -202,9 +202,7 @@ class SegmentationModel(pl.LightningModule):
 		import numpy as np
 		sns.set_style("whitegrid")
 
-		m, b = np.polyfit(error, variance, 1)
-		plt.plot(error, variance)
-		plt.plot(error, m*error+b)
+		plt.scatter(error, variance)
 		plt.xlabel('Prediction error (mm)')
 		plt.ylabel('variance')
 		plt.savefig("error_variance.png")
