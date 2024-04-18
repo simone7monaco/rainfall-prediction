@@ -118,7 +118,7 @@ class SegmentationModel(pl.LightningModule):
 		self.log("val_loss", loss)
 		self.log("val_rmse", self.rmse(loss), prog_bar=True)
 		
-		if(self.self.current_epoch%10==0):
+		if(self.current_epoch%10==0):
 			for metric in self.metrics:
 				for th in self.thresholds:
 					self.log(f"test_{metric.__name__}_{th*self.case_study_max}", metric(y_hat[self.mask==1], y[self.mask==1], th))
