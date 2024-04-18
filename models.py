@@ -186,19 +186,20 @@ class SegmentationModel(pl.LightningModule):
 				predictions = torch.cat(predictions, dim=0) # shape (n_samples, C, H, W)
 			dropout_predictions.append(predictions)
 		dropout_predictions = torch.stack(dropout_predictions, dim=0) # shape (n_forward_passes, n_samples, C, H, W)
-		y_all = torch.cat([batch['y'] for batch in self.test_dataloader()], dim=0)
+		y_all = torch.cat([batch['y'] for batch in self.test_dataloader()], dim=0)*self.case_study_max
 
 		# Calculating stats across multiple MCD forward passes 
-		mean = dropout_predictions.mean(dim=0)
-		variance = dropout_predictions.var(dim=0)
+		mean = dropout_predictions.mean(dim=0)*self.case_study_max
+		variance = dropout_predictions.var(dim=0)*self.case_study_max
   
 		# Calculating variance over error
 		error = torch.abs(mean-y_all.cuda())
-		error = error.reshape((error.shape[0]*error.shape[1]))
-		variance = variance.reshape((variance.shape[0]*variance.shape[1]))
+		error = error.flatten()
+		variance = variance.flatten()
   
 		import matplotlib.pyplot as plt
 		import seaborn as sns
+		import numpy as np
 		sns.set_style("whitegrid")
 
 		plt.scatter(error.cpu().numpy(), variance.cpu().numpy())
@@ -207,6 +208,12 @@ class SegmentationModel(pl.LightningModule):
 		plt.legend()
 		plt.show()
 		plt.savefig("error_variance.png")
+  
+		plt.hist(error, bins=np.linspace(0,500, 100))
+		plt.xlabel('Prediction error (mm)')
+		plt.legend()
+		plt.show()
+		plt.savefig("pred_error.png")
 		
 
 		# Calculating entropy across multiple MCD forward passes 
