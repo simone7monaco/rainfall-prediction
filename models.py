@@ -207,15 +207,11 @@ class SegmentationModel(pl.LightningModule):
 		plt.plot(error, m*error+b)
 		plt.xlabel('Prediction error (mm)')
 		plt.ylabel('variance')
-		plt.legend()
-		plt.show()
 		plt.savefig("error_variance.png")
   
 		plt.hist(error, bins=np.linspace(0,100, 100))
 		plt.xlabel('Prediction error (mm)')
 		plt.ylabel('')
-		plt.legend()
-		plt.show()
 		plt.savefig("pred_error.png")
 		
 
