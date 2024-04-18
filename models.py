@@ -205,8 +205,8 @@ class SegmentationModel(pl.LightningModule):
 		ind = np.where(error>0)
 		var_mean=[]
 		err_mean=[]
-		for i, bin in enumerate(np.linspace(0, 400, 21)):
-			indx = np.where((error>bin) & (error<=bin+(400/20)))
+		for i, bin in enumerate(np.linspace(0, 400, 41)):
+			indx = np.where((error>bin) & (error<=bin+(400/40)))
 			var_mean.append(variance[indx].mean())
 			err_mean.append(error[indx].mean())
 
