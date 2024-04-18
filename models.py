@@ -191,6 +191,23 @@ class SegmentationModel(pl.LightningModule):
 		# Calculating stats across multiple MCD forward passes 
 		mean = dropout_predictions.mean(dim=0)
 		variance = dropout_predictions.var(dim=0)
+  
+		# Calculating variance over error
+		error = torch.abs(mean-y_all.cuda())
+		error = error.reshape((error.shape[0]*error.shape[1]))
+		variance = variance.reshape((variance.shape[0]*variance.shape[1]))
+  
+		import matplotlib.pyplot as plt
+		import seaborn as sns
+		sns.set_style("whitegrid")
+
+		plt.scatter(error.cpu().numpy(), variance.cpu().numpy())
+		plt.xlabel('Prediction error (mm)')
+		plt.ylabel('variance')
+		plt.legend()
+		plt.show()
+		plt.savefig("error_variance.png")
+		
 
 		# Calculating entropy across multiple MCD forward passes 
 		# entropy = -torch.sum(mean * torch.log(mean + 1e-6), axis=-1)
@@ -208,6 +225,7 @@ class SegmentationModel(pl.LightningModule):
 		print(f"MCD variance", variance.mean().item())
 		print(f"forward pass ", forward_passes)
 		wandb.log({"test rmse": self.rmse(loss)})
+		wandb.log({"test variance": variance.mean().item()})
 		# print(f"MCD entropy", entropy.mean().item())
 		# print(f"MCD mutual info", mutual_info.mean().item())
 
