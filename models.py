@@ -121,7 +121,7 @@ class SegmentationModel(pl.LightningModule):
 		if(self.current_epoch%10==0):
 			for metric in self.metrics:
 				for th in self.thresholds:
-					self.log(f"test_{metric.__name__}_{th*self.case_study_max}", metric(y_hat[self.mask==1], y[self.mask==1], th))
+					self.log(f"test_{metric.__name__}_{th*self.case_study_max}", metric(y_hat[:,:,self.mask==1], y[:,:,self.mask==1], th))
 	
 	def test_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
@@ -138,7 +138,7 @@ class SegmentationModel(pl.LightningModule):
 
 		for metric in self.metrics:
 			for th in self.thresholds:
-				self.log(f"test_{metric.__name__}_{th*self.case_study_max}", metric(y_hat[self.mask==1], y[self.mask==1], th))
+				self.log(f"test_{metric.__name__}_{th*self.case_study_max}", metric(y_hat[:,:,self.mask==1], y[:,:,self.mask==1], th))
 	
 	# def on_train_end(self):
 	# 	import seaborn as sns
