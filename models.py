@@ -219,19 +219,19 @@ class SegmentationModel(pl.LightningModule):
 		plt.plot(err_mean, var_mean)
 		plt.xlabel('Prediction error (mm)')
 		plt.ylabel('variance')
-		plt.savefig(f"error_variance_mc{self.hparams.mcdropout}.png")
+		plt.savefig(f"error_variance{self.hparams.seed}_{self.hparams.n_split}.png")
   
 		plt.figure()
 		plt.hist(error[ind], bins=np.linspace(0,20, 100))
 		plt.xlabel('Prediction error (mm)')
 		plt.ylabel('# pixel')
-		plt.savefig(f"pred_error_mc{self.hparams.mcdropout}.png")
+		plt.savefig(f"pred_error{self.hparams.seed}_{self.hparams.n_split}.png")
 
 		plt.figure()
 		plt.hist(error[ind], bins=100, log=True)
 		plt.xlabel('Prediction error (mm)')
 		plt.ylabel('log(# pixel)')
-		plt.savefig(f"pred_error_log_mc{self.hparams.mcdropout}.png")
+		plt.savefig(f"pred_error_log{self.hparams.seed}_{self.hparams.n_split}.png")
 		
 
 		# Calculating entropy across multiple MCD forward passes 
