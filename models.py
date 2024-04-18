@@ -258,6 +258,7 @@ class SegmentationModel(pl.LightningModule):
 			for th in self.thresholds:
 				met = metric(mean[:,:,self.mask==1], y_all[:,:,self.mask==1], th)
 				wandb.log(f"MCD_{metric.__name__}_{th*self.case_study_max}", met)
+				print(f"MCD_{metric.__name__}_{th*self.case_study_max}", met)
 
 	def eval_proba(self, lv_thresholds=[1, 5, 10, 20, 50, 100, 150], forward_passes=20, save_dir=None):
 		"""
