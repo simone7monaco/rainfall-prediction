@@ -3,6 +3,9 @@ from utils import io
 from PIL import Image
 import pandas as pd
 import wandb
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 import torch
 import torch.nn as nn
@@ -33,7 +36,8 @@ class SegmentationModel(pl.LightningModule):
 		self.sigmoid = nn.Sigmoid()
 
 		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
-		self.metrics = []
+		self.thresholds = [1/self.case_study_max, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
+		self.metrics = [freqbias, ets, csi]
 		self.test_predictions = []
 
 		self.train_losses = []
@@ -115,7 +119,8 @@ class SegmentationModel(pl.LightningModule):
 		self.log("val_rmse", self.rmse(loss), prog_bar=True)
 
 		for metric in self.metrics:
-			self.log(f"val_{metric.__name__}", metric(y_hat, y))
+			for th in self.thresholds:
+				self.log(f"test_{metric.__name__}_{th*self.case_study_max}", metric(y_hat, y, th))
 	
 	def test_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
@@ -131,7 +136,8 @@ class SegmentationModel(pl.LightningModule):
 			self.log(f"rmse NWP {channel}", self.rmse(loss_ch))
 
 		for metric in self.metrics:
-			self.log(f"test_{metric.__name__}", metric(y_hat, y))
+			for th in self.thresholds:
+				self.log(f"test_{metric.__name__}_{th*self.case_study_max}", metric(y_hat, y, th))
 	
 	# def on_train_end(self):
 	# 	import seaborn as sns
@@ -197,9 +203,7 @@ class SegmentationModel(pl.LightningModule):
 		error = error.flatten().cpu().numpy()*self.case_study_max
 		variance = variance.flatten().cpu().numpy()
   
-		import matplotlib.pyplot as plt
-		import seaborn as sns
-		import numpy as np
+		
 		sns.set_style("whitegrid")
 
 		ind = np.where(error>0)
@@ -309,9 +313,7 @@ class SegmentationModel(pl.LightningModule):
 			print(f"Brier score for threshold {lv} mm: {brier_scores[lv]:.4f}")
 			print(f">Brier score for input models: {input_models_brier_score[lv]:.4f}\n")
 			wandb.log({f"Brier score {lv} mm": brier_scores[lv]})
-		
-		import matplotlib.pyplot as plt
-		import seaborn as sns
+
 		sns.set_style("whitegrid")
 
 		plt.figure()
@@ -345,3 +347,24 @@ class MSLELoss(nn.Module):
         
     def forward(self, pred, actual):
         return self.mse(torch.log(pred*10 + 1), torch.log(actual*10 + 1))
+
+
+def freqbias(perc,veri,threshh):
+    hits=np.sum((veri>=threshh)*(perc>=threshh))
+    falsealarms=np.sum((veri<threshh)*(perc>=threshh))
+    misses=np.sum((veri>=threshh)*(perc<threshh))
+    return (hits+falsealarms)/(hits+misses)
+
+def ets(perc,veri,threshh):
+    hits=np.sum((veri>=threshh)*(perc>=threshh))
+    falsealarms=np.sum((veri<threshh)*(perc>=threshh))
+    misses=np.sum((veri>=threshh)*(perc<threshh))
+    correctnegatives=np.sum((veri<threshh)*(perc<threshh))
+    hitsrandom=(hits+misses)*(hits+falsealarms)/np.sum((hits,falsealarms, misses, correctnegatives))
+    return (hits-hitsrandom)/(hits+misses+falsealarms-hitsrandom)
+
+def csi(perc,veri,threshh):
+    hits=np.sum((veri>=threshh)*(perc>=threshh))
+    falsealarms=np.sum((veri<threshh)*(perc>=threshh))
+    misses=np.sum((veri>=threshh)*(perc<threshh))
+    return hits/(hits+falsealarms+misses)
