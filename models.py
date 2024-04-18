@@ -117,10 +117,11 @@ class SegmentationModel(pl.LightningModule):
 		self.val_losses.append([self.current_epoch, loss.item()])
 		self.log("val_loss", loss)
 		self.log("val_rmse", self.rmse(loss), prog_bar=True)
-
-		for metric in self.metrics:
-			for th in self.thresholds:
-				self.log(f"test_{metric.__name__}_{th*self.case_study_max}", metric(y_hat, y, th))
+		
+		if(self.epoch%10==0):
+			for metric in self.metrics:
+				for th in self.thresholds:
+					self.log(f"test_{metric.__name__}_{th*self.case_study_max}", metric(y_hat, y, th))
 	
 	def test_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
@@ -254,7 +255,8 @@ class SegmentationModel(pl.LightningModule):
 		# print(f"MCD mutual info", mutual_info.mean().item())
 
 		for metric in self.metrics:
-			print(f"MCD {metric.__name__}", metric(mean, y_all))
+			for th in self.thresholds:
+				self.log(f"MCD_{metric.__name__}_{th*self.case_study_max}", metric(y_hat, y, th))
 
 	def eval_proba(self, lv_thresholds=[1, 5, 10, 20, 50, 100, 150], forward_passes=20, save_dir=None):
 		"""
