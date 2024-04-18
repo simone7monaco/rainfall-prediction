@@ -186,11 +186,11 @@ class SegmentationModel(pl.LightningModule):
 				predictions = torch.cat(predictions, dim=0) # shape (n_samples, C, H, W)
 			dropout_predictions.append(predictions)
 		dropout_predictions = torch.stack(dropout_predictions, dim=0) # shape (n_forward_passes, n_samples, C, H, W)
-		y_all = torch.cat([batch['y'] for batch in self.test_dataloader()], dim=0)*self.case_study_max
+		y_all = torch.cat([batch['y'] for batch in self.test_dataloader()], dim=0)
 
 		# Calculating stats across multiple MCD forward passes 
-		mean = dropout_predictions.mean(dim=0)*self.case_study_max
-		variance = dropout_predictions.var(dim=0)*self.case_study_max
+		mean = dropout_predictions.mean(dim=0)
+		variance = dropout_predictions.var(dim=0)
   
 		# Calculating variance over error
 		error = torch.abs(mean-y_all.cuda())
@@ -231,7 +231,7 @@ class SegmentationModel(pl.LightningModule):
 		#print(f"y_all shape {y_all.shape}")
 		#print(f"mean shape {mean.shape}")
 
-		print(f"MCD RMSE", self.rmse(loss)/self.case_study_max)
+		print(f"MCD RMSE", self.rmse(loss))
 		print(f"MCD variance", variance.mean().item())
 		print(f"forward pass ", forward_passes)
 		wandb.log({"test rmse": self.rmse(loss)})
