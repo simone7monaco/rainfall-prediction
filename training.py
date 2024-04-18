@@ -49,14 +49,14 @@ def main(args):
 		logger = WandbLogger(project='rainfall_prediction_trash')
 
 	if not args.load_checkpoint:
-		early_stop = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=10, verbose=False, mode="min")
+		early_stop = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=20, verbose=False, mode="min")
 		model_checkpoint = ModelCheckpoint(output_path / args.network_model, monitor='val_loss', mode='min', filename='{epoch}-{val_rmse:.2f}')
 		
 		model = SegmentationModel(**args.__dict__)
 		trainer = pl.Trainer(
 			accelerator='gpu' if cuda.is_available() else 'cpu',
 			max_epochs=args.epochs,
-			callbacks=[model_checkpoint],
+			callbacks=[model_checkpoint, early_stop],
 			log_every_n_steps=1,
 			logger=logger # default is TensorBoard
 		)
