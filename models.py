@@ -360,7 +360,7 @@ def ets(perc,veri,threshh):
     falsealarms=torch.sum((veri<threshh)*(perc>=threshh))
     misses=torch.sum((veri>=threshh)*(perc<threshh))
     correctnegatives=torch.sum((veri<threshh)*(perc<threshh))
-    hitsrandom=(hits+misses)*(hits+falsealarms)/torch.sum((hits,falsealarms, misses, correctnegatives))
+    hitsrandom=(hits+misses)*(hits+falsealarms)/(hits+falsealarms+misses+correctnegatives)
     return (hits-hitsrandom)/(hits+misses+falsealarms-hitsrandom)
 
 def csi(perc,veri,threshh):
