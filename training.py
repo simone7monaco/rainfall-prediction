@@ -56,7 +56,7 @@ def main(args):
 		trainer = pl.Trainer(
 			accelerator='gpu' if cuda.is_available() else 'cpu',
 			max_epochs=args.epochs,
-			callbacks=[model_checkpoint, early_stop],
+			callbacks=[model_checkpoint],
 			log_every_n_steps=1,
 			logger=logger # default is TensorBoard
 		)
