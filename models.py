@@ -320,6 +320,7 @@ class SegmentationModel(pl.LightningModule):
 
 
 			brier_scores[lv] = ((probabilities[lv] - y_all.cuda().gt(lv).float())**2).mean().item()
+			brier_scores[lv] = brier_scores[lv] * (96*128)/5247 #normalization to mask==1 only
 			prob_input_models = (x_all > lv).float()
 			# print(f"y_all shape {y_all.shape}")
 			# print(f"input_model_all shape {x_all.shape}")
