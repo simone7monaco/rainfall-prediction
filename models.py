@@ -203,7 +203,7 @@ class SegmentationModel(pl.LightningModule):
 				predictions = torch.cat(predictions, dim=0) # shape (n_samples, C, H, W)
 			dropout_predictions.append(predictions)
 		dropout_predictions = torch.stack(dropout_predictions, dim=0) # shape (n_forward_passes, n_samples, C, H, W)
-		y_all = torch.cat([batch['y'] for batch in self.test_dataloader()], dim=0)*self.mask
+		y_all = torch.cat([batch['y'] for batch in self.test_dataloader()], dim=0)*self.mask.cpu()
 
 		# Calculating stats across multiple MCD forward passes 
 		mean = dropout_predictions.mean(dim=0)
