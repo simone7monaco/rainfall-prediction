@@ -177,7 +177,7 @@ class SegmentationModel(pl.LightningModule):
 	def configure_optimizers(self):
 		return torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
 	
-	def get_monte_carlo_predictions(self, forward_passes=20):
+	def get_monte_carlo_predictions(self, forward_passes=20, save_dir=None):
 		""" Function to get the monte-carlo samples and uncertainty estimates
 		through multiple forward passes
 
@@ -217,7 +217,9 @@ class SegmentationModel(pl.LightningModule):
 		
 		sns.set_style("whitegrid")
   
-		os.chdir("/reports")
+		if save_dir is None:
+			save_dir = Path(self.logger.log_dir)
+		save_dir.mkdir(exist_ok=True)
 
 		ind = np.where(error>0)
 		var_mean=[]
@@ -231,19 +233,19 @@ class SegmentationModel(pl.LightningModule):
 		plt.scatter(err_mean, var_mean)
 		plt.xlabel('Prediction error (mm)')
 		plt.ylabel('variance')
-		plt.savefig(f"error_variance{self.hparams.seed}_{self.hparams.n_split}.png")
+		plt.savefig(save_dir/f"error_variance{self.hparams.seed}_{self.hparams.n_split}.png")
   
 		plt.figure()
 		plt.hist(error[ind], bins=np.linspace(0,20, 100))
 		plt.xlabel('Prediction error (mm)')
 		plt.ylabel('# pixel')
-		plt.savefig(f"pred_error{self.hparams.seed}_{self.hparams.n_split}.png")
+		plt.savefig(save_dir/f"pred_error{self.hparams.seed}_{self.hparams.n_split}.png")
 
 		plt.figure()
 		plt.hist(error[ind], bins=100, log=True)
 		plt.xlabel('Prediction error (mm)')
 		plt.ylabel('log(# pixel)')
-		plt.savefig(f"pred_error_log{self.hparams.seed}_{self.hparams.n_split}.png")
+		plt.savefig(save_dir/f"pred_error_log{self.hparams.seed}_{self.hparams.n_split}.png")
 		
 
 		# Calculating entropy across multiple MCD forward passes 

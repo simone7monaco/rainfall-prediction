@@ -79,7 +79,7 @@ def main(args):
 		
 
 	if model.hparams.mcdropout:
-		model.get_monte_carlo_predictions(forward_passes=args.forward_passes)
+		model.get_monte_carlo_predictions(forward_passes=args.forward_passes, save_dir=Path('reports'))
 		model.eval_proba(save_dir=Path('proba'), forward_passes=args.forward_passes)
 	else:
 		trainer.test(model)
