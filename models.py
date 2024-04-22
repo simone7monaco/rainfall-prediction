@@ -6,6 +6,7 @@ import wandb
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 
 import torch
 import torch.nn as nn
@@ -215,6 +216,8 @@ class SegmentationModel(pl.LightningModule):
   
 		
 		sns.set_style("whitegrid")
+  
+		os.chdir("/reports")
 
 		ind = np.where(error>0)
 		var_mean=[]
