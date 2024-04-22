@@ -224,8 +224,8 @@ class SegmentationModel(pl.LightningModule):
 		ind = np.where(error>0)
 		var_mean=[]
 		err_mean=[]
-		for i, bin in enumerate(np.linspace(0, 400, 101)):
-			indx = np.where((error>bin) & (error<=bin+(400/100)))
+		for i, bin in enumerate(np.linspace(0, 400, 201)):
+			indx = np.where((error>bin) & (error<=bin+(400/200)))
 			var_mean.append(variance[indx].mean())
 			err_mean.append(error[indx].mean())
 
@@ -233,19 +233,19 @@ class SegmentationModel(pl.LightningModule):
 		plt.scatter(err_mean, var_mean)
 		plt.xlabel('Prediction error (mm)')
 		plt.ylabel('variance')
-		plt.savefig(save_dir/f"error_variance{self.hparams.seed}_{self.hparams.n_split}.png")
+		plt.savefig(save_dir/f"error_variance_seed_{self.hparams.seed}_split_{self.hparams.n_split}.png")
   
 		plt.figure()
 		plt.hist(error[ind], bins=np.linspace(0,20, 100))
 		plt.xlabel('Prediction error (mm)')
 		plt.ylabel('# pixel')
-		plt.savefig(save_dir/f"pred_error{self.hparams.seed}_{self.hparams.n_split}.png")
+		plt.savefig(save_dir/f"pred_error_seed_{self.hparams.seed}_split_{self.hparams.n_split}.png")
 
 		plt.figure()
 		plt.hist(error[ind], bins=100, log=True)
 		plt.xlabel('Prediction error (mm)')
 		plt.ylabel('log(# pixel)')
-		plt.savefig(save_dir/f"pred_error_log{self.hparams.seed}_{self.hparams.n_split}.png")
+		plt.savefig(save_dir/f"pred_error_log_seed_{self.hparams.seed}_split_{self.hparams.n_split}.png")
 		
 
 		# Calculating entropy across multiple MCD forward passes 
