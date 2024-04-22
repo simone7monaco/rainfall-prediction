@@ -2,7 +2,8 @@ import os
 from typing import Literal, AnyStr, List
 
 import numpy as np
-import pandas as pd  # type: ignore
+import pandas as pd
+from sklearn.model_selection import StratifiedKFold  # type: ignore
 
 
 def get_dates(
@@ -26,16 +27,17 @@ def get_model(topdir: str, model_name: str, date: str, case_study_max: float) ->
     return model_data / case_study_max
 
 
-def get_mask_indices(topdir: str,ispadded:bool):
-    if not ispadded:
-        cs = topdir.stem.split('_')[-1] # OI | radar
-        # file_path = topdir / "OI_regrid_mask_piem_vda.csv"
+def get_mask_indices(topdir: str, ispadded:bool):
+    cs = topdir.stem.split('_')[-1] # OI | radar
+    file_path = next(topdir.glob(f"{cs}*regrid*piem_vda.csv"))
+    if not file_path.exists():
         file_path = next(topdir.glob(f"{cs}*piem_vda.csv"))
-    else:
-        file_path = os.path.join(topdir, "OI_regrid_mask_piem_vda_unet.csv")
-    # TODO: è quello corretto? verificare dimensioni maschera!!
-    assert os.path.exists(file_path), f"File {file_path} does not exist"
+    # file_path = os.path.join(topdir, "OI_regrid_mask_piem_vda_unet.csv")
+    
     mask = pd.read_csv(file_path, sep=";", header=None).to_numpy()
+    if ispadded:
+        mask = np.pad(mask, ((0, 0), (0, 128-mask.shape[1])), mode='constant', constant_values=0)
+
     indices = np.where(mask == 1)
     indices_zero = np.where(mask == 0)
     return indices, indices_zero, mask
@@ -54,88 +56,8 @@ def get_obs(topdir: str, date: str, case_study_max: float) -> np.ndarray:
     obs_data = pd.read_csv(file_path, sep=";", header=None).to_numpy()
     return obs_data / case_study_max
 
-def load_data_NN(
-    topdir: str,
-    dates: np.ndarray,
-    case_study_max: float,
-    indices: np.ndarray,
-    indices_zero: np.ndarray,
-    available_models: list[str],
-) -> tuple[np.ndarray, np.ndarray]:
-    models_data = []
-    obs_data = []
-    for date in dates:
-        _models_tmp = np.array([])
-        for model_name in available_models:
-            _mdl_data = get_model(topdir, model_name, date, case_study_max)[indices]
-            _models_tmp=np.concatenate((_models_tmp,_mdl_data), axis=None)
-            #_models_tmp.append(_mdl_data)
-        models_data.append(_models_tmp)
-        _obs_data = get_obs(topdir, date, case_study_max)
-        _obs_data[indices_zero]=0
-        obs_data.append(_obs_data)
-    x = np.stack(models_data, axis=0).astype(np.float32)
-    y = np.stack(obs_data, axis=0).astype(np.float32)
-    return x, y, x.shape[1],int(x.shape[1]/len(available_models))
 
-
-def load_data_1d(
-    topdir: str,
-    dates: np.ndarray,
-    case_study_max: float,
-    indices: np.ndarray,
-    indices_zero: np.ndarray,
-    available_models: list[str],
-) -> tuple[np.ndarray, np.ndarray]:
-    models_data = []
-    obs_data = []
-    for date in dates:
-        _models_tmp = np.array([])
-        for model_name in available_models:
-            _mdl_data = get_model(topdir, model_name, date, case_study_max)[indices]
-            _models_tmp=np.concatenate((_models_tmp,_mdl_data), axis=None)
-            #_models_tmp.append(_mdl_data)
-        models_data.append(_models_tmp)
-        _obs_data = get_obs(topdir, date, case_study_max)[indices]
-        obs_data.append(_obs_data)
-    x = np.stack(models_data, axis=0).astype(np.float32)
-    y = np.stack(obs_data, axis=0).astype(np.float32)
-    return x, y, x.shape[1],y.shape[1]
-
-def load_data_2d(
-    topdir: str,
-    dates: np.ndarray,
-    case_study_max: float,
-    indices: np.ndarray,
-    indices_zero: np.ndarray,
-    available_models: list[str],
-) -> tuple[np.ndarray, np.ndarray]:
-    from matplotlib import pyplot as plt  # type: ignore
-    models_data = []
-    obs_data = []
-    for date in dates:
-        _models_tmp = []
-        #print(date)
-        for model_name in available_models:
-            _mdl_data = get_model(topdir, model_name, date, case_study_max)
-            _mdl_data[indices_zero] = 0
-            # print(model_name)
-            # plt.imshow(_mdl_data)
-            # plt.show()
-            _models_tmp.append(_mdl_data)
-        models_data.append(_models_tmp)
-        _obs_data = get_obs(topdir, date, case_study_max)
-        _obs_data[indices_zero] = 0
-
-        # print("obs")
-        # plt.imshow(_obs_data)
-        # plt.show()                
-        obs_data.append(_obs_data)
-    x = np.stack(models_data, axis=0).astype(np.float32)
-    y = np.stack(obs_data, axis=0).astype(np.float32)
-    return x, y, x.shape[1],1
-
-def load_data_2d_unet(
+def load_data(
     topdir: str,
     dates: np.ndarray,
     case_study_max: float,
@@ -173,41 +95,41 @@ def load_data_2d_unet(
     y = np.stack(obs_data, axis=0).astype(np.float32)
     return x, y, x.shape[1],1
         
-def load_data(
-    network_model_prefix:str,
-    topdir: str,
-    dates: np.ndarray,
-    case_study_max: float,
-    indices: np.ndarray,
-    indices_zero: np.ndarray,
-    available_models: list[str],
-) -> tuple[np.ndarray, np.ndarray]:
 
-    if network_model_prefix=="NN":
-        #return load_data_1d(topdir, dates, case_study_max, indices, indices_zero, available_models)
-        return load_data_NN(topdir, dates, case_study_max, indices, indices_zero, available_models)
-    elif network_model_prefix=="cnn":
-        return load_data_2d(topdir, dates, case_study_max, indices, indices_zero, available_models)
-    elif network_model_prefix=="unet":
-        return load_data_2d_unet(topdir, dates, case_study_max, indices, indices_zero, available_models)
+# def get_casestudy_stuff(input_path:str, split_idx:str, n_split: int, case_study:str, ispadded:bool):
+#     # if case_study=="24h_10mmMAX_OI":
+#     case_study_max=483.717752
+#     available_models = ["bol00", "e1000", "c2200", "c5m00"]
+#     train_dates = get_dates(input_path, "training", split_idx, n_split)
+#     val_dates = get_dates(input_path, "validation", split_idx, n_split)
+#     test_dates = get_dates(input_path, "test", split_idx, n_split) 
+#     try:   
+#         bad_dates = get_dates(input_path, "bad", "", 0)   
+#         test_dates=np.concatenate((test_dates, bad_dates), axis=None)
+#     except:
+#         pass
 
-def get_casestudy_stuff(input_path:str, split_idx:str, n_split: int, case_study:str, ispadded:bool):
-    # if case_study=="24h_10mmMAX_OI":
+#     indices_one, indices_zero, mask = get_mask_indices(input_path,ispadded)
+#     nx=mask.shape[0]
+#     ny=mask.shape[1]
+#     return case_study_max,available_models, train_dates, val_dates, test_dates, indices_one, indices_zero, mask, nx, ny
+
+def get_casestudy_stuff(input_path:str, n_split: int, case_study:str, ispadded:bool, seed:int):
     case_study_max=483.717752
     available_models = ["bol00", "e1000", "c2200", "c5m00"]
-    train_dates = get_dates(input_path, "training", split_idx, n_split)
-    val_dates = get_dates(input_path, "validation", split_idx, n_split)
-    test_dates = get_dates(input_path, "test", split_idx, n_split) 
-    try:   
-        bad_dates = get_dates(input_path, "bad", "", 0)   
-        test_dates=np.concatenate((test_dates, bad_dates), axis=None)
-    except:
-        pass
 
-    indices_one, indices_zero, mask = get_mask_indices(input_path,ispadded)
-    nx=mask.shape[0]
-    ny=mask.shape[1]
-    return case_study_max,available_models, train_dates, val_dates, test_dates, indices_one, indices_zero, mask, nx, ny
+    dates = pd.read_csv(input_path / "split/cluster_all_dates.csv", sep=";")
+    skf = StratifiedKFold(n_splits=9, random_state=seed, shuffle=True)
+    train_index, test_index = list(skf.split(dates, dates.NAME))[n_split]
+    val_index, train_index = np.split(train_index, [len(test_index)])
+    train_dates = dates.iloc[train_index].DATA.values
+    val_dates = dates.iloc[val_index].DATA.values
+    test_dates = dates.iloc[test_index].DATA.values
+
+    indices_one, indices_zero, mask = get_mask_indices(input_path, ispadded)
+    nx, ny = mask.shape
+    return case_study_max, available_models, train_dates, val_dates, test_dates, indices_one, indices_zero, mask, nx, ny
+
 
 
 def date_features(dates:List[AnyStr]):

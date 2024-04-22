@@ -1,3 +1,6 @@
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+
 import argparse
 from pathlib import Path
 
@@ -8,6 +11,7 @@ from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
+import yaml
 
 
 from models import SegmentationModel
@@ -16,10 +20,10 @@ from models import SegmentationModel
 def get_args(args=None):
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--case_study", "-c", type=str, default="24h_10mmMAX_OI", choices=['24h_10mmMAX_OI', '24h_10mmMAX_radar'])
-	parser.add_argument("--network_model", type=str, default="unet")
+	parser.add_argument("--network_model", "-m", type=str, default="unet")
 	parser.add_argument("--batch_size", type=int, default=32)
-	parser.add_argument("--split_idx", type=str, default="701515")
-	parser.add_argument("--n_split", type=int, default=9)
+	# parser.add_argument("--split_idx", type=str, default="701515")
+	parser.add_argument("--n_split", type=int, default=8)
 	parser.add_argument("--lr", type=float, default=1e-4)
 	parser.add_argument("--epochs", "-e", type=int, default=150)
 	parser.add_argument("--mcdropout", type=float, default=0.2)
@@ -33,7 +37,11 @@ def get_args(args=None):
 def main(args):
 	pl.seed_everything(args.seed)
 	scratch_path = Path("/home/students/s265780/data")
-	# scratch_path = Path("/home/monaco/MultimodelPreci")
+	conf_dev = Path("config_dev.yaml")
+	if conf_dev.exists():
+		with open(conf_dev, 'r') as f:
+			conf_dev = yaml.safe_load(f)
+		scratch_path = Path(conf_dev['scratch_path'])
 
 	input_path = scratch_path / args.case_study
 	output_path = Path('lightning_logs')
@@ -49,8 +57,8 @@ def main(args):
 		logger = WandbLogger(project='rainfall_prediction_trash')
 
 	if not args.load_checkpoint:
-		early_stop = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=20, verbose=False, mode="min")
-		model_checkpoint = ModelCheckpoint(output_path / args.network_model, monitor='val_loss', mode='min', filename='{epoch}-{val_rmse:.2f}')
+		early_stop = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=10, verbose=False, mode="min")
+		model_checkpoint = ModelCheckpoint(output_path / f"split_{args.n_split}", monitor='val_loss', mode='min', filename='{epoch}-{val_rmse:.2f}')
 		
 		model = SegmentationModel(**args.__dict__)
 		trainer = pl.Trainer(

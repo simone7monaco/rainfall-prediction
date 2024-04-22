@@ -9,12 +9,15 @@ import seaborn as sns
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
 torch.set_float32_matmul_precision('high')
 NUM_WORKERS = 64
 
 from torch.utils.data import DataLoader
 from utils.datasets import NWPDataset
 from networks.unet import UNet, ExtraUNet
+from networks.vgunet import VGUNet
 
 import pytorch_lightning as pl
 
@@ -26,6 +29,8 @@ class SegmentationModel(pl.LightningModule):
 		self.load_data()
 		if self.hparams.network_model == 'unet':
 			self.cnn = UNet(self.in_features, self.out_features, dropout=self.hparams.mcdropout)
+		elif self.hparams.network_model == 'vgunet':
+			self.cnn = VGUNet(self.in_features, self.out_features, base_nc=64)
 		elif self.hparams.network_model.startswith('extra'):
 			self.cnn = ExtraUNet(self.in_features, self.out_features, image_shape=(self.x_train[0].shape[1], self.x_train[0].shape[2]), use_attention=True)
 		else:
@@ -34,6 +39,7 @@ class SegmentationModel(pl.LightningModule):
 		self.training_loss = nn.L1Loss() #MSLELoss() 
 		self.brierLoss = BrierLoss()
 		self.sigmoid = nn.Sigmoid()
+		#self.loss = lambda y_hat, y: F.mse_loss(y_hat * self.mask, y * self.mask)
 
 		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
 		self.thresholds = [1/self.case_study_max, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
@@ -51,16 +57,19 @@ class SegmentationModel(pl.LightningModule):
 
 	def load_data(self):
 		case_study_max, available_models, train_dates, val_dates, test_dates, indices_one, indices_zero, mask, nx, ny = io.get_casestudy_stuff(
-			self.hparams.input_path, self.hparams.split_idx, self.hparams.n_split, self.hparams.case_study, ispadded=True # False
+			self.hparams.input_path, n_split=self.hparams.n_split, case_study=self.hparams.case_study, ispadded=True,
+			seed=self.hparams.seed
 		)
-		self.x_train, self.y_train, in_features, out_features = io.load_data('unet', self.hparams.input_path, train_dates, case_study_max, indices_one, indices_zero, available_models)
-		self.x_val, self.y_val, in_features, out_features = io.load_data('unet', self.hparams.input_path, val_dates, case_study_max, indices_one, indices_zero, available_models)
-		self.x_test, self.y_test, in_features, out_features = io.load_data('unet', self.hparams.input_path, test_dates, case_study_max, indices_one, indices_zero, available_models)
+		self.x_train, self.y_train, in_features, out_features = io.load_data(self.hparams.input_path, train_dates, case_study_max, indices_one, indices_zero, available_models)
+		self.x_val, self.y_val, in_features, out_features = io.load_data(self.hparams.input_path, val_dates, case_study_max, indices_one, indices_zero, available_models)
+		self.x_test, self.y_test, in_features, out_features = io.load_data(self.hparams.input_path, test_dates, case_study_max, indices_one, indices_zero, available_models)
 
 		self.train_dates, self.val_dates, self.test_dates = train_dates, val_dates, test_dates
 
 		self.case_study_max = case_study_max
-		self.mask = torch.from_numpy(mask).float().to(self.device)
+		mask = torch.from_numpy(mask).float().to(self.device)
+		self.register_buffer('mask', mask) # This makes sure self.mask is on the same device as the model
+
 		self.in_features = in_features
 		self.out_features = out_features
 	
