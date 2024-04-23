@@ -393,7 +393,7 @@ def csi(perc,veri,threshh):
     return hits/(hits+falsealarms+misses)
 
 def ECE(gt, probs):
-    x_, y_ = calibration_curve(gt.flatten(), probs.flatten(), n_bins=10, strategy='quantile')
+    x_, y_ = calibration_curve(gt.flatten().cpu(), probs.flatten().cpu(), n_bins=10, strategy='quantile')
     ece = (torch.abs(x_ - y_)).mean()
     return ece
 
