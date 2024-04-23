@@ -398,7 +398,7 @@ def ECE(gt, probs):
     return ece
 
 def KL(gt, probs, self):
-    eps = torch.Tensor(1e-10).cpu()
+    eps = torch.Tensor([1e-10]).cpu()
     gt = gt.squeeze()
     probs = probs.squeeze()
     probs = probs[:, self.mask.cpu()==1].flatten().cpu()
