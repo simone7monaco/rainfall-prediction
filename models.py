@@ -394,7 +394,7 @@ def csi(perc,veri,threshh):
 
 def ECE(gt, probs):
     x_, y_ = calibration_curve(gt.flatten().cpu(), probs.flatten().cpu(), n_bins=10, strategy='quantile')
-    ece = (torch.abs(x_ - y_)).mean()
+    ece = np.mean(np.abs(x_ - y_))
     return ece
 
 def KL(gt, probs, self):
