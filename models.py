@@ -398,10 +398,10 @@ def ECE(gt, probs):
     return ece
 
 def KL(gt, probs, self):
-    eps=1e-10
+    eps = torch.Tensor(1e-10).cpu()
     gt = gt.squeeze()
     probs = probs.squeeze()
-    probs = probs[:, self.mask.cpu()==1].flatten()
-    y_true_gt=gt[:, self.mask.cpu()==1].flatten()
+    probs = probs[:, self.mask.cpu()==1].flatten().cpu()
+    y_true_gt=gt[:, self.mask.cpu()==1].flatten().cpu()
     kl_prob_gt = -(probs * torch.log((y_true_gt + eps) / (probs + eps)) +(1 - probs) * torch.log((1 - y_true_gt + eps) / (1-probs + eps))).mean()
     return kl_prob_gt
