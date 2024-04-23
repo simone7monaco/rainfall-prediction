@@ -55,7 +55,12 @@ class SegmentationModel(pl.LightningModule):
 	def forward(self, x, times):
 		if isinstance(self.cnn, ExtraUNet):
 			return self.cnn(x, times)
-		return self.cnn(x) *self.mask.cuda()
+		y = self.cnn(x) *self.mask.cuda()
+		y_prob = []
+		for th in self.thresholds:
+			y_prob.append(self.sigmoid(y-th))
+		y_prob = torch.cat(y_prob, dim=1)
+		return y, y_prob
 
 	def load_data(self):
 		case_study_max, available_models, train_dates, val_dates, test_dates, indices_one, indices_zero, mask, nx, ny = io.get_casestudy_stuff(
@@ -101,9 +106,9 @@ class SegmentationModel(pl.LightningModule):
 	
 	def training_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
-		y_hat = self.forward(x, ev_date) # shape (n_repetitions*n_samples, C, H, W)
+		y_hat, y_hat_prob = self.forward(x, ev_date) # shape (n_repetitions*n_samples, C, H, W)
 		loss = self.training_loss(y_hat, y)
-  
+		print(f"y_hat_prob dim: {y_hat_prob.shape}")
 		# lv_thresholds=[1/self.case_study_max, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
 		# probabilities = {lv: [] for lv in lv_thresholds}
 		# for i in range(7):
@@ -123,7 +128,7 @@ class SegmentationModel(pl.LightningModule):
 
 	def validation_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
-		y_hat = self.forward(x, ev_date)
+		y_hat, y_hat_prob = self.forward(x, ev_date)
 		loss = self.loss(y_hat, y)
 		self.val_losses.append([self.current_epoch, loss.item()])
 		self.log("val_loss", loss)
@@ -136,7 +141,7 @@ class SegmentationModel(pl.LightningModule):
 	
 	def test_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
-		y_hat = self.forward(x, ev_date)
+		y_hat, y_hat_prob = self.forward(x, ev_date)
 		loss = self.loss(y_hat, y)
 		self.log("test rmse", self.rmse(loss))
 		# self.log_images(x, y, y_hat, batch_idx)
