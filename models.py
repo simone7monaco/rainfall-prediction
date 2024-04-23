@@ -338,6 +338,8 @@ class SegmentationModel(pl.LightningModule):
 			print(f"ECE for threshold {lv} mm: {ece:.4f}")
 			print(f"KL for threshold {lv} mm: {kl:.4f}\n")
 			wandb.log({f"Brier score {lv} mm": brier_scores[lv]})
+			wandb.log({f"ECE {lv} mm": ece})
+			wandb.log({f"KL {lv} mm": kl})
 
 		sns.set_style("whitegrid")
 
