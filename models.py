@@ -328,13 +328,15 @@ class SegmentationModel(pl.LightningModule):
 			# print(f"probabilities shape {probabilities[lv].shape}")
 			# print(f"prob_input_models shape {prob_input_models.shape}")
 			# print(f"diff shape {(prob_input_models - y_all.gt(lv).float()).shape}")
-			ece = ECE(gt=y_all.gt(lv).float(), probs=probabilities[lv])
+   
+			ece = ECE(gt=y_all.gt(lv).float(), probs=probabilities[lv], self=self)
 			kl = KL(gt=y_all.gt(lv).float(), probs=probabilities[lv], self=self)
 			input_models_brier_score[lv] = ((prob_input_models - y_all.gt(lv).float())**2).mean().item()
+   
 			print(f"Brier score for threshold {lv} mm: {brier_scores[lv]:.4f}")
-			print(f">Brier score for input models: {input_models_brier_score[lv]:.4f}\n")
+			print(f">Brier score for input models: {input_models_brier_score[lv]:.4f}")
 			print(f"ECE for threshold {lv} mm: {ece:.4f}")
-			print(f"KL for threshold {lv} mm: {kl:.4f}")
+			print(f"KL for threshold {lv} mm: {kl:.4f}\n")
 			wandb.log({f"Brier score {lv} mm": brier_scores[lv]})
 
 		sns.set_style("whitegrid")
@@ -392,8 +394,12 @@ def csi(perc,veri,threshh):
     misses=torch.sum((veri>=threshh)*(perc<threshh))
     return hits/(hits+falsealarms+misses)
 
-def ECE(gt, probs):
-    x_, y_ = calibration_curve(gt.flatten().cpu(), probs.flatten().cpu(), n_bins=10, strategy='quantile')
+def ECE(gt, probs, self):
+    gt = gt.squeeze().cpu()
+    probs = probs.squeeze().cpu()
+    probs = probs[:, self.mask.cpu()==1].flatten()
+    y_true_gt=gt[:, self.mask.cpu()==1].flatten()
+    x_, y_ = calibration_curve(y_true_gt, probs, n_bins=10, strategy='quantile')
     ece = np.mean(np.abs(x_ - y_))
     return ece
 
