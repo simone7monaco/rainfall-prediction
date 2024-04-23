@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+from sklearn.calibration import calibration_curve
 
 import torch
 import torch.nn as nn
@@ -327,10 +328,13 @@ class SegmentationModel(pl.LightningModule):
 			# print(f"probabilities shape {probabilities[lv].shape}")
 			# print(f"prob_input_models shape {prob_input_models.shape}")
 			# print(f"diff shape {(prob_input_models - y_all.gt(lv).float()).shape}")
-
+			ece = ECE(gt=y_all.gt(lv).float(), probs=probabilities[lv])
+			kl = KL(gt=y_all.gt(lv).float(), probs=probabilities[lv], self=self)
 			input_models_brier_score[lv] = ((prob_input_models - y_all.gt(lv).float())**2).mean().item()
 			print(f"Brier score for threshold {lv} mm: {brier_scores[lv]:.4f}")
 			print(f">Brier score for input models: {input_models_brier_score[lv]:.4f}\n")
+			print(f"ECE for threshold {lv} mm: {ece:.4f}")
+			print(f"KL for threshold {lv} mm: {kl:.4f}")
 			wandb.log({f"Brier score {lv} mm": brier_scores[lv]})
 
 		sns.set_style("whitegrid")
@@ -387,3 +391,15 @@ def csi(perc,veri,threshh):
     falsealarms=torch.sum((veri<threshh)*(perc>=threshh))
     misses=torch.sum((veri>=threshh)*(perc<threshh))
     return hits/(hits+falsealarms+misses)
+
+def ECE(gt, probs):
+    x_, y_ = calibration_curve(gt.flatten(), probs.flatten(), n_bins=10, strategy='quantile')
+    ece = (torch.abs(x_ - y_)).mean()
+    return ece
+
+def KL(gt, probs, self):
+    eps=1e-10
+    probs = probs[:, self.mask==1].flatten()
+    y_true_gt=gt[:, self.mask==1].flatten()
+    kl_prob_gt = -(probs * torch.log((y_true_gt + eps) / (probs + eps)) +(1 - probs) * torch.log((1 - y_true_gt + eps) / (1-probs + eps))).mean()
+    return kl_prob_gt
