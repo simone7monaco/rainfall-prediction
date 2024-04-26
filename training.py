@@ -1,5 +1,5 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 import argparse
 from pathlib import Path
@@ -10,14 +10,13 @@ from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import yaml
-
-from models import SegmentationModel
+import wandb
 
 
 def get_args(args=None):
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--case_study", "-c", type=str, default="24h_10mmMAX_OI", choices=['24h_10mmMAX_OI', '24h_10mmMAX_radar'])
-	parser.add_argument("--network_model", "-m", type=str, default="unet")
+	parser.add_argument("--network_model", "-m", type=str, default="unet", choices=['unet', 'sde_unet', 'ensemble_unet'])
 	parser.add_argument("--batch_size", type=int, default=32)
 	# parser.add_argument("--split_idx", type=str, default="701515")
 	parser.add_argument("--n_split", type=int, default=8)
@@ -26,6 +25,8 @@ def get_args(args=None):
 	parser.add_argument("--mcdropout", type=float, default=0)
 	parser.add_argument("--load_checkpoint", type=Path, default=None)
 	parser.add_argument("--seed", type=int, default=42)
+	parser.add_argument("--wb", type=bool, default=False)
+	parser.add_argument("--eval_proba", type=bool, default=False)
 	args = parser.parse_args(args)
 	return args
 	
@@ -49,9 +50,23 @@ def main(args):
 	# logger = CSVLogger(output_path, name=args.network_model)
 
 	if not args.load_checkpoint:
-		early_stop = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=10, verbose=False, mode="min")
-		model_checkpoint = ModelCheckpoint(output_path / f"split_{args.n_split}", monitor='val_loss', mode='min', filename='{epoch}-{val_rmse:.2f}')
+		early_stop = EarlyStopping(monitor="val/loss", min_delta=0.00, patience=10, verbose=False, mode="min")
+		model_checkpoint = ModelCheckpoint(output_path / f"split_{args.n_split}", monitor='val/loss', mode='min', filename='{epoch}-{val_rmse:.2f}')
 		
+		if args.network_model == 'unet':
+			from base_segmodel import _SegmentationModel as SegmentationModel
+		elif args.network_model == 'sde_unet':
+			from sde_segmodel import SegmentationModel
+		elif args.network_model == 'ensemble_unet':
+			from ensemble_segmodel import SegmentationModel
+		else:
+			raise ValueError(f"Unknown network model {args.network_model}")
+
+		if args.wb:
+			logger = pl.loggers.WandbLogger(project='rainfall')
+			logger.log_hyperparams(args.__dict__)
+		else:
+			logger = None
 		model = SegmentationModel(**args.__dict__)
 		trainer = pl.Trainer(
 			accelerator='gpu' if cuda.is_available() else 'cpu',
@@ -59,7 +74,7 @@ def main(args):
 			callbacks=[model_checkpoint],
 			log_every_n_steps=1,
 			num_sanity_val_steps=0,
-			# logger=logger, # default is TensorBoard
+			logger=logger,
 		)
 		trainer.fit(model)
 
@@ -70,14 +85,16 @@ def main(args):
 		print(f"\n⬆️  Loading checkpoint {args.load_checkpoint}")
 		model = SegmentationModel.load_from_checkpoint(args.load_checkpoint)
 		
-
-	if model.hparams.mcdropout:
-		model.get_monte_carlo_predictions()
+	
+	trainer.test(model)
+	if args.eval_proba:
 		model.eval_proba(save_dir=Path('proba'))
-	else:
-		trainer.test(model)
+		
 
 
 if __name__ == '__main__':
 	args = get_args()
+	if args.mcdropout and args.network_model == 'sde_unet':
+		print("MC Dropout is not implemented for SDE-UNet")
+		exit()
 	main(args)

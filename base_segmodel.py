@@ -11,38 +11,31 @@ NUM_WORKERS = 0
 
 from torch.utils.data import DataLoader
 from utils.datasets import NWPDataset
-from networks.unet import UNet, ExtraUNet
-from networks.vgunet import VGUNet
+from models import UNet
 
 import pytorch_lightning as pl
 
-class SegmentationModel(pl.LightningModule):
+class _SegmentationModel(pl.LightningModule):
 	def __init__(self, **hparams):
 		super().__init__()
 		self.save_hyperparameters()
-
 		self.load_data()
-		if self.hparams.network_model == 'unet':
-			self.cnn = UNet(self.in_features, self.out_features, dropout=self.hparams.mcdropout)
-		elif self.hparams.network_model == 'vgunet':
-			self.cnn = VGUNet(self.in_features, self.out_features, base_nc=64)
-		elif self.hparams.network_model.startswith('extra'):
-			self.cnn = ExtraUNet(self.in_features, self.out_features, image_shape=(self.x_train[0].shape[1], self.x_train[0].shape[2]), use_attention=True)
-		else:
-			raise NotImplementedError(f'Model {self.hparams.network_model} not implemented')
-		
-		self.loss = lambda y_hat, y: F.mse_loss(y_hat * self.mask, y * self.mask)
-		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
+		self.cnn = self.get_model()
+
+		def M_MSE(y_hat, y, reduction='mean'):
+			return F.mse_loss(y_hat*self.mask, y*self.mask, reduction=reduction)
+		self.loss = M_MSE
+		self.denorm_rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
 		self.metrics = []
 		self.test_predictions = []
 
 		self.train_losses = []
 		self.val_losses = []
-		
+	
+	def get_model(self):
+		return UNet(self.in_features, self.out_features, dropout=self.hparams.mcdropout)
 
-	def forward(self, x, times):
-		if isinstance(self.cnn, ExtraUNet):
-			return self.cnn(x, times)
+	def forward(self, x, idx=0):
 		return self.cnn(x)
 
 	def load_data(self):
@@ -64,65 +57,64 @@ class SegmentationModel(pl.LightningModule):
 		self.out_features = out_features
 	
 	def train_dataloader(self):
-		if isinstance(self.cnn, ExtraUNet):
-			self.train_dates = io.date_features(self.train_dates)
 		train_dataset = NWPDataset((torch.from_numpy(self.x_train), 
 							  		torch.from_numpy(self.y_train).unsqueeze(1),
 							  		torch.from_numpy(self.train_dates)))
 		return DataLoader(train_dataset, batch_size=self.hparams.batch_size, shuffle=True, num_workers=NUM_WORKERS)
 		
 	def val_dataloader(self):
-		if isinstance(self.cnn, ExtraUNet):
-			self.val_dates = io.date_features(self.val_dates)
 		val_dataset = NWPDataset((torch.from_numpy(self.x_val), 
 								  torch.from_numpy(self.y_val).unsqueeze(1),
 								  torch.from_numpy(self.val_dates)))
 		return DataLoader(val_dataset, batch_size=len(val_dataset), shuffle=False, num_workers=NUM_WORKERS)
 	
 	def test_dataloader(self):
-		if isinstance(self.cnn, ExtraUNet):
-			self.test_dates = io.date_features(self.test_dates)
 		test_dataset = NWPDataset((torch.from_numpy(self.x_test),
 									torch.from_numpy(self.y_test).unsqueeze(1),
 									torch.from_numpy(self.test_dates)))
 		return DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False, num_workers=NUM_WORKERS)
 	
-	def training_step(self, batch, batch_idx):
-		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
-		y_hat = self.forward(x, ev_date) # shape (n_repetitions*n_samples, C, H, W)
+	def training_step(self, batch, idx):
+		x, y = batch['x'], batch['y']
+		y_hat = self.forward(x, idx)
 		loss = self.loss(y_hat, y)
 		self.train_losses.append([self.current_epoch, loss.item()])
-		self.log("train_loss", loss)
-		self.log("train_rmse", self.rmse(loss), prog_bar=True)
-
+		self.log("train/loss", loss)
+		self.log("train/rmse", self.denorm_rmse(loss), prog_bar=True)
 		return loss
 
-	def validation_step(self, batch, batch_idx):
-		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
-		y_hat = self.forward(x, ev_date)
+	def validation_step(self, batch, idx):
+		x, y = batch['x'], batch['y']
+		y_hat = self.forward(x, idx)
 		loss = self.loss(y_hat, y)
 		self.val_losses.append([self.current_epoch, loss.item()])
-		self.log("val_loss", loss)
-		self.log("val_rmse", self.rmse(loss), prog_bar=True)
+		self.log("val/loss", loss)
+		self.log("val/rmse", self.denorm_rmse(loss), prog_bar=True)
 
 		for metric in self.metrics:
 			self.log(f"val_{metric.__name__}", metric(y_hat, y))
 	
-	def test_step(self, batch, batch_idx):
-		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
-		y_hat = self.forward(x, ev_date)
+	def test_step(self, batch, idx):
+		x, y = batch['x'], batch['y']
+		if self.hparams.mcdropout or self.hparams.network_model == 'sde_unet':
+			y_hat = torch.zeros_like(y)
+			for _ in range(10):
+				y_hat += self.forward(x, idx)
+			y_hat /= 10
+		else:
+			y_hat = self.forward(x, idx)
 		loss = self.loss(y_hat, y)
-		self.log("test rmse", self.rmse(loss))
-		# self.log_images(x, y, y_hat, batch_idx)
+		self.log("test/rmse", self.denorm_rmse(loss))
+		# self.log_images(x, y, y_hat, idx)
 
 		self.test_predictions.append(y_hat)
 
 		for channel in range(x.shape[1]):
 			loss_ch = self.loss(x[:, channel:channel+1, :, :], y)
-			self.log(f"rmse NWP {channel}", self.rmse(loss_ch))
+			self.log(f"test/rmse NWP {channel}", self.denorm_rmse(loss_ch))
 
 		for metric in self.metrics:
-			self.log(f"test_{metric.__name__}", metric(y_hat, y))
+			self.log(f"test/test_{metric.__name__}", metric(y_hat, y))
 	
 	# def on_train_end(self):
 	# 	import seaborn as sns
@@ -138,20 +130,20 @@ class SegmentationModel(pl.LightningModule):
 	# 	fig.savefig(Path(self.logger.log_dir)/"losses.png")
 
 
-	def log_images(self, features, masks, logits_, batch_idx):
+	def log_images(self, features, masks, logits_, idx):
 		respath = Path(self.logger.log_dir) / "test_images"
 		respath.mkdir(exist_ok=True)
 		tensor_to_img = lambda t: (t.detach().cpu().numpy()[0] * 255)
 		for img_idx, (image, y_true, y_pred) in enumerate(zip(features, masks, logits_)):
-			Image.fromarray(tensor_to_img(y_pred)).convert('L').save(respath/f"{batch_idx}_{img_idx}_pred.png")
-			Image.fromarray(tensor_to_img(y_true)).convert('L').save(respath/f"{batch_idx}_{img_idx}_gt.png")
+			Image.fromarray(tensor_to_img(y_pred)).convert('L').save(respath/f"{idx}_{img_idx}_pred.png")
+			Image.fromarray(tensor_to_img(y_true)).convert('L').save(respath/f"{idx}_{img_idx}_gt.png")
 			for i in range(image.shape[0]):
-				Image.fromarray(tensor_to_img(image[i:i+1])).convert('L').save(respath/f"{batch_idx}_{img_idx}_m{i}.png")
+				Image.fromarray(tensor_to_img(image[i:i+1])).convert('L').save(respath/f"{idx}_{img_idx}_m{i}.png")
 
 	def configure_optimizers(self):
 		return torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
 	
-	def get_monte_carlo_predictions(self, forward_passes=20):
+	def get_monte_carlo_predictions(self, forward_passes=10):
 		""" Function to get the monte-carlo samples and uncertainty estimates
 		through multiple forward passes
 
@@ -193,7 +185,9 @@ class SegmentationModel(pl.LightningModule):
 		y_all = torch.cat([batch['y'] for batch in self.test_dataloader()], dim=0)
 		loss = self.loss(mean, y_all.cuda())
 
-		print(f"MCD RMSE", self.rmse(loss))
+		self.log("test/rmse", self.denorm_rmse(loss))
+		self.log("test/variance", variance.mean().item())
+		print(f"MCD RMSE", self.denorm_rmse(loss))
 		print(f"MCD variance", variance.mean().item())
 		# print(f"MCD entropy", entropy.mean().item())
 		# print(f"MCD mutual info", mutual_info.mean().item())

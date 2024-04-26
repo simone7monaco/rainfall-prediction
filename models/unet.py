@@ -16,6 +16,8 @@ class EncBlock(nn.Module):
         )
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         self.dropout = nn.Dropout(dropout)
+        self.in_channels = in_c
+        self.out_channels = out_c
         
     def forward(self, inputs):
         x = self.net(inputs)
@@ -28,6 +30,8 @@ class DecBlock(nn.Module):
         super().__init__()
         self.up = nn.ConvTranspose2d(in_c, out_c, kernel_size=2, stride=2, padding=0)
         self.conv = EncBlock(out_c+out_c, out_c, dropout=dropout)
+        self.in_channels = in_c
+        self.out_channels = out_c
         
     def forward(self, inputs, skip):
         x = self.up(inputs)
@@ -99,35 +103,6 @@ class VUNet(UNet):
         x = self.decoder(z, skips)
         out = self.outconv(x)
         return out, mu, logvar
-
-# bayesian unet:
-# Classical U-Net with the last layer replaced by a Bayesian layer, this is done with Pyro
-# The forward method is overwritten to return the output of the Bayesian layer
-# from pyro.nn.module import PyroModule
-# from pyro.distributions import Normal
-
-# class BayesianUNet(UNet, PyroModule):
-#     def __init__(self, in_features: int, out_features: int, activation=None, dropout=0.):
-#         super().__init__(in_features, out_features, activation, dropout)
-#         self.outconv = PyroModule[nn.Conv2d](64, out_features, kernel_size=1)
-        
-#     def forward(self, x):
-#         x, skips = self.encoder(x)
-#         x = self.decoder(x, skips)
-#         out = self.outconv(x)
-#         return out
-
-#     def model(self, x, y=None):
-#         # define the model p(y|x)
-#         sigma = pyro.sample("sigma", dist.Uniform(0., 1.))
-#         mean = self.forward(x)
-#         with pyro.plate("data", x.shape[0]):
-#             obs = pyro.sample("obs", dist.Normal(mean, sigma), obs=y)
-#         return mean
-
-#     def guide(self, x, y=None):
-#         # define the guide q(z|x, y)
-#         pass
 
 
 class AttentionBlock(nn.Module):
