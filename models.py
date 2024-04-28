@@ -160,7 +160,7 @@ class SegmentationModel(pl.LightningModule):
 		save_dir=Path('proba')
 		brier_scores = {}
 		input_models_brier_score = {}
-		lv_thresholds = self.thresholds * self.case_study_max
+		lv_thresholds = self.thresholds.float() * self.case_study_max.float()
 		y = y * self.case_study_max
 		x = x * self.case_study_max
 		for j, lv in enumerate(lv_thresholds):
