@@ -155,6 +155,55 @@ class SegmentationModel(pl.LightningModule):
 		for metric in self.metrics:
 			for th in self.thresholds:
 				self.log(f"test_{metric.__name__}_{th*self.case_study_max}", metric(y_hat[:,:,self.mask==1], y[:,:,self.mask==1], th))
+    
+		# Calculating Brier score
+		save_dir=Path('proba')
+		brier_scores = {}
+		input_models_brier_score = {}
+		lv_thresholds = self.thresholds * self.case_study_max
+		y = y * self.case_study_max
+		x = x * self.case_study_max
+		for j, lv in enumerate(lv_thresholds):
+			(save_dir/str(lv)).mkdir(exist_ok=True)
+			# save the probability results for each threshold under the logger directory / <threshold> / pred{ev_date}.csv
+   
+			for i, ename in enumerate(ev_date):
+				# probabilities[lv] has shape (n_samples, C, H, W) to get the current image, we need to index the first dimension
+				# img = probabilities[lv][i].cpu().numpy()
+				pd.DataFrame(y_hat_prob[j][i].squeeze().cpu().numpy()).to_csv(save_dir/f"{lv}/pred{ename}.csv", index=False, header=False)
+
+
+			brier_scores[lv] = ((y_hat_prob[j] - y.cuda().gt(lv).float())**2).mean().item()
+			brier_scores[lv] = brier_scores[lv] * (96*128)/5247 #normalization to mask==1 only
+			prob_input_models = (x > lv).float()
+			# print(f"y_all shape {y_all.shape}")
+			# print(f"input_model_all shape {x_all.shape}")
+			# print(f"probabilities shape {probabilities[lv].shape}")
+			# print(f"prob_input_models shape {prob_input_models.shape}")
+			# print(f"diff shape {(prob_input_models - y_all.gt(lv).float()).shape}")
+   
+			ece = ECE(gt=y.gt(lv).float(), probs=y_hat_prob[j], self=self)
+			kl = KL(gt=y.gt(lv).float(), probs=y_hat_prob[j], self=self)
+			input_models_brier_score[lv] = ((prob_input_models - y.gt(lv).float())**2).mean().item()
+   
+			print(f"Brier score for threshold {lv} mm: {brier_scores[lv]:.4f}")
+			print(f">Brier score for input models: {input_models_brier_score[lv]:.4f}")
+			print(f"ECE for threshold {lv} mm: {ece:.4f}")
+			print(f"KL for threshold {lv} mm: {kl:.4f}\n")
+			wandb.log({f"Brier score {lv} mm": brier_scores[lv]})
+			wandb.log({f"ECE {lv} mm": ece})
+			wandb.log({f"KL {lv} mm": kl})
+
+		sns.set_style("whitegrid")
+
+		plt.figure()
+		plt.plot(lv_thresholds, [brier_scores[lv] for lv in lv_thresholds], label='Brier score')
+		plt.plot(lv_thresholds, [input_models_brier_score[lv] for lv in lv_thresholds], label='Input models Brier score')
+		plt.xlabel('Threshold (mm)')
+		plt.ylabel('Brier score')
+		plt.legend()
+		plt.savefig("brier_scores.png")
+		# plt.savefig(Path(self.logger.log_dir)/"brier_scores.png")
 	
 	# def on_train_end(self):
 	# 	import seaborn as sns
