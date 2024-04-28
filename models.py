@@ -170,10 +170,10 @@ class SegmentationModel(pl.LightningModule):
 			for i, ename in enumerate(ev_date):
 				# probabilities[lv] has shape (n_samples, C, H, W) to get the current image, we need to index the first dimension
 				# img = probabilities[lv][i].cpu().numpy()
-				pd.DataFrame(y_hat_prob[j][i].squeeze().cpu().numpy()).to_csv(save_dir/f"{lv}/pred{ename}.csv", index=False, header=False)
+				pd.DataFrame(y_hat_prob[i][j].squeeze().cpu().numpy()).to_csv(save_dir/f"{lv}/pred{ename}.csv", index=False, header=False)
 
 
-			brier_scores[lv] = ((y_hat_prob[j] - y.cuda().gt(lv).float())**2).mean().item()
+			brier_scores[lv] = ((y_hat_prob[:, j] - y.cuda().gt(lv).float())**2).mean().item()
 			brier_scores[lv] = brier_scores[lv] * (96*128)/5247 #normalization to mask==1 only
 			prob_input_models = (x > lv).float()
 			# print(f"y_all shape {y_all.shape}")
@@ -182,8 +182,8 @@ class SegmentationModel(pl.LightningModule):
 			# print(f"prob_input_models shape {prob_input_models.shape}")
 			# print(f"diff shape {(prob_input_models - y_all.gt(lv).float()).shape}")
    
-			ece = ECE(gt=y.gt(lv).float(), probs=y_hat_prob[j], self=self)
-			kl = KL(gt=y.gt(lv).float(), probs=y_hat_prob[j], self=self)
+			ece = ECE(gt=y.gt(lv).float(), probs=y_hat_prob[:, j], self=self)
+			kl = KL(gt=y.gt(lv).float(), probs=y_hat_prob[:, j], self=self)
 			input_models_brier_score[lv] = ((prob_input_models - y.gt(lv).float())**2).mean().item()
    
 			print(f"Brier score for threshold {lv} mm: {brier_scores[lv]:.4f}")
