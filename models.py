@@ -58,7 +58,7 @@ class SegmentationModel(pl.LightningModule):
 		y = self.cnn(x) *self.mask.cuda()
 		y_prob = []
 		for th in self.thresholds:
-			y_prob.append(self.sigmoid((y-th)/th*10))
+			y_prob.append(self.sigmoid((y-th)/th*5))
 		y_prob = torch.cat(y_prob, dim=1)
 		return y, y_prob
 
