@@ -107,7 +107,7 @@ class SegmentationModel(pl.LightningModule):
 		y_hat, y_hat_prob = self.forward(x, ev_date) # shape (n_repetitions*n_samples, C, H, W)
 		loss=0
 		for i, lv in enumerate(self.thresholds):
-			loss = loss + self.BCEL(y_hat[i], y.gt(lv).float())
+			loss = loss + self.BCEL(y_hat[:,i], y.gt(lv).float())
       
 		self.train_losses.append([self.current_epoch, loss.item()])
 		self.log("train_loss", loss, prog_bar=True) 
@@ -119,7 +119,7 @@ class SegmentationModel(pl.LightningModule):
 		y_hat, y_hat_prob = self.forward(x, ev_date)
 		loss=0
 		for i, lv in enumerate(self.thresholds):
-			loss = loss + self.BCEL(y_hat[i], y.gt(lv).float())
+			loss = loss + self.BCEL(y_hat[:,i], y.gt(lv).float())
 		self.val_losses.append([self.current_epoch, loss.item()])
 		self.log("val_loss", loss)
 		
@@ -133,7 +133,7 @@ class SegmentationModel(pl.LightningModule):
 		y_hat, y_hat_prob = self.forward(x, ev_date)
 		loss=0
 		for i, lv in enumerate(self.thresholds):
-			loss = loss + self.BCEL(y_hat[i], y.gt(lv).float())
+			loss = loss + self.BCEL(y_hat[:,i], y.gt(lv).float())
 		# self.log_images(x, y, y_hat, batch_idx)
 
 		self.test_predictions.append(y_hat)
