@@ -105,9 +105,13 @@ class SegmentationModel(pl.LightningModule):
 	def training_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
 		y_hat, y_hat_prob = self.forward(x, ev_date) # shape (n_repetitions*n_samples, C, H, W)
-		loss=0
-		for i, lv in enumerate(self.thresholds):
-			loss = loss + self.BCEL(y_hat[:,i], y.gt(lv).float().squeeze())
+		y_p = []
+		for i in range(len(self.thresholds)):
+			y_p.append(y.gt(self.thresholds[i]).float())
+		y_p=torch.cat(y_p, dim=1)
+		#for i, lv in enumerate(self.thresholds):
+			#loss = loss + self.BCEL(y_hat[:,i], y.gt(lv).float().squeeze())
+		loss = self.BCEL(y_hat, y_p)
       
 		self.train_losses.append([self.current_epoch, loss.item()])
 		self.log("train_loss", loss, prog_bar=True) 
@@ -121,7 +125,7 @@ class SegmentationModel(pl.LightningModule):
 		for i, lv in enumerate(self.thresholds):
 			loss = loss + self.BCEL(y_hat[:,i], y.gt(lv).float().squeeze())
 		self.val_losses.append([self.current_epoch, loss.item()])
-		self.log("val_loss", loss)
+		self.log("val_loss", loss, prog_bar=True)
 		
 		if(self.current_epoch%10==0):
 			for metric in self.metrics:
