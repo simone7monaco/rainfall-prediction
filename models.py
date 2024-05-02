@@ -109,8 +109,6 @@ class SegmentationModel(pl.LightningModule):
 		for i in range(len(self.thresholds)):
 			y_p.append(y.gt(self.thresholds[i]).float())
 		y_p=torch.cat(y_p, dim=1)
-		#for i, lv in enumerate(self.thresholds):
-			#loss = loss + self.BCEL(y_hat[:,i], y.gt(lv).float().squeeze())
 		loss = self.BCEL(y_hat, y_p)
       
 		self.train_losses.append([self.current_epoch, loss.item()])
@@ -121,9 +119,11 @@ class SegmentationModel(pl.LightningModule):
 	def validation_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
 		y_hat, y_hat_prob = self.forward(x, ev_date)
-		loss=0
-		for i, lv in enumerate(self.thresholds):
-			loss = loss + self.BCEL(y_hat[:,i], y.gt(lv).float().squeeze())
+		y_p = []
+		for i in range(len(self.thresholds)):
+			y_p.append(y.gt(self.thresholds[i]).float())
+		y_p=torch.cat(y_p, dim=1)
+		loss = self.BCEL(y_hat, y_p)
 		self.val_losses.append([self.current_epoch, loss.item()])
 		self.log("val_loss", loss, prog_bar=True)
 		
@@ -135,10 +135,11 @@ class SegmentationModel(pl.LightningModule):
 	def test_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
 		y_hat, y_hat_prob = self.forward(x, ev_date)
-		loss=0
-		for i, lv in enumerate(self.thresholds):
-			loss = loss + self.BCEL(y_hat[:,i], y.gt(lv).float().squeeze())
-		# self.log_images(x, y, y_hat, batch_idx)
+		y_p = []
+		for i in range(len(self.thresholds)):
+			y_p.append(y.gt(self.thresholds[i]).float())
+		y_p=torch.cat(y_p, dim=1)
+		loss = self.BCEL(y_hat, y_p)
 
 		self.test_predictions.append(y_hat)
 
