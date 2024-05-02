@@ -41,11 +41,12 @@ class SegmentationModel(pl.LightningModule):
 		self.training_loss = nn.L1Loss() #MSLELoss() 
 		self.brierLoss = BrierLoss()
 		self.sigmoid = nn.Sigmoid()
+		self.BCEL = nn.BCEWithLogitsLoss()
 		#self.loss = lambda y_hat, y: F.mse_loss(y_hat * self.mask, y * self.mask)
 
 		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
 		self.thresholds = [1/self.case_study_max, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
-		self.metrics = [freqbias, ets, csi]
+		self.metrics = [] #[freqbias, ets, csi]
 		self.test_predictions = []
 
 		self.train_losses = []
@@ -55,11 +56,8 @@ class SegmentationModel(pl.LightningModule):
 	def forward(self, x, times):
 		if isinstance(self.cnn, ExtraUNet):
 			return self.cnn(x, times)
-		y = self.cnn(x) *self.mask.cuda()
-		y_prob = []
-		for th in self.thresholds:
-			y_prob.append(self.sigmoid((y-th)/th*5))
-		y_prob = torch.cat(y_prob, dim=1)
+		y = self.cnn(x) *self.mask
+		y_prob = self.sigmoid(y) *self.mask
 		return y, y_prob
 
 	def load_data(self):
@@ -78,7 +76,7 @@ class SegmentationModel(pl.LightningModule):
 		self.register_buffer('mask', mask) # This makes sure self.mask is on the same device as the model
 
 		self.in_features = in_features
-		self.out_features = out_features
+		self.out_features = 7 #out_features
 	
 	def train_dataloader(self):
 		if isinstance(self.cnn, ExtraUNet):
@@ -107,32 +105,23 @@ class SegmentationModel(pl.LightningModule):
 	def training_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
 		y_hat, y_hat_prob = self.forward(x, ev_date) # shape (n_repetitions*n_samples, C, H, W)
-		loss = self.training_loss(y_hat, y)
-
-		# lv_thresholds=[1/self.case_study_max, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
-		# probabilities = {lv: [] for lv in lv_thresholds}
-		# for i in range(7):
-		# 	predictions = self.forward(x, ev_date)
-		# 	for lv in lv_thresholds:
-		# 		probabilities[lv].append(self.sigmoid(predictions - lv))
-		# for lv in lv_thresholds:
-		# 	probabilities[lv] = torch.stack(probabilities[lv], dim=0).mean(dim=0)
-
-		# brier_score = self.brierLoss(probabilities, y)
+		loss=0
+		for lv in self.thresholds:
+			loss = loss + self.BCEL(y_hat, y.gt(lv).float())
       
 		self.train_losses.append([self.current_epoch, loss.item()])
-		self.log("train_L1loss", loss, prog_bar=True) 
-		#self.log("train_brier_score", brier_score)
+		self.log("train_loss", loss, prog_bar=True) 
 
-		return loss #brier_score/1000 + 
+		return loss
 
 	def validation_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
 		y_hat, y_hat_prob = self.forward(x, ev_date)
-		loss = self.loss(y_hat, y)
+		loss=0
+		for lv in self.thresholds:
+			loss = loss + self.BCEL(y_hat, y.gt(lv).float())
 		self.val_losses.append([self.current_epoch, loss.item()])
 		self.log("val_loss", loss)
-		self.log("val_rmse", self.rmse(loss), prog_bar=True)
 		
 		if(self.current_epoch%10==0):
 			for metric in self.metrics:
@@ -142,8 +131,9 @@ class SegmentationModel(pl.LightningModule):
 	def test_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
 		y_hat, y_hat_prob = self.forward(x, ev_date)
-		loss = self.loss(y_hat, y)
-		self.log("test rmse", self.rmse(loss))
+		loss=0
+		for lv in self.thresholds:
+			loss = loss + self.BCEL(y_hat, y.gt(lv).float())
 		# self.log_images(x, y, y_hat, batch_idx)
 
 		self.test_predictions.append(y_hat)
@@ -176,11 +166,6 @@ class SegmentationModel(pl.LightningModule):
 			brier_scores[lv] = ((y_hat_prob[:, j] - y.cuda().gt(lv).float())**2).mean().item()
 			brier_scores[lv] = brier_scores[lv] * (96*128)/5247 #normalization to mask==1 only
 			prob_input_models = (x > lv).float()
-			# print(f"y_all shape {y_all.shape}")
-			# print(f"input_model_all shape {x_all.shape}")
-			# print(f"probabilities shape {probabilities[lv].shape}")
-			# print(f"prob_input_models shape {prob_input_models.shape}")
-			# print(f"diff shape {(prob_input_models - y_all.gt(lv).float()).shape}")
    
 			ece = ECE(gt=y.gt(lv).float(), probs=y_hat_prob[:, j], self=self)
 			kl = KL(gt=y.gt(lv).float(), probs=y_hat_prob[:, j], self=self)
@@ -418,14 +403,6 @@ class BrierLoss(nn.Module):
         for lv in self.lv_thresholds:
             brier_score = brier_score + ((predictions[lv].float() - targets.gt(lv).float())**2).mean()
         return brier_score
-    
-class MSLELoss(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.mse = nn.MSELoss()
-        
-    def forward(self, pred, actual):
-        return self.mse(torch.log(pred*10 + 1), torch.log(actual*10 + 1))
 
 
 def freqbias(perc,veri,threshh):
