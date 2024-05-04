@@ -30,7 +30,7 @@ def get_args(args=None):
 	parser.add_argument("--load_checkpoint", type=Path, default=None)
 	parser.add_argument("--seed", type=int, default=42)
 	parser.add_argument("--forward_passes", type=int, default=1)
-	parser.add_argument("--code_version", type=int, default=3)
+	parser.add_argument("--code_version", type=int, default=4)
 	args = parser.parse_args(args)
 	return args
 	
