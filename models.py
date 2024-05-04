@@ -109,8 +109,39 @@ class SegmentationModel(pl.LightningModule):
 		for i in range(len(self.thresholds)):
 			y_p.append(y.gt(self.thresholds[i]).float())
 		y_p=torch.cat(y_p, dim=1)
-		loss = self.BCEL(y_hat, y_p)
-      
+
+		if self.current_epoch > 0: #change to best epoch
+			#sort to calculate bins
+			n_bins=10
+			sorted_idx = torch.argsort(y_hat_prob.flatten())
+			#targets_probs = y_hat_prob[sorted_idx]
+			labels = y_p.flatten()
+			labels = labels[sorted_idx]
+			num_sample = len(labels)
+			indices = torch.arange(num_sample)
+			indices = indices[sorted_idx]
+			proposed_probs = torch.zeros(num_sample)
+			new_labels = torch.zeros(num_sample)
+			if 1: #self.finetune_type == 'bin':
+				for i in range(n_bins):
+					left = int(i * num_sample / n_bins)
+					right = int((i + 1) * num_sample / n_bins)
+					new_labels[left:right] = torch.mean((labels[left:right]))
+			# elif self.finetune_type == 'kde':
+			# 	for i in range(num_sample):
+			# 		left = np.maximum(0, i - self.window)
+			# 		right = np.minimum(i + self.window, num_sample)
+			# 		new_labels[i] = self.get_new_prob(targets_probs[i],
+			# 											targets_probs[left:right], labels[left:right], scale=self.sigma)
+			#else:
+			#	raise NotImplementedError
+
+			for i in range(num_sample):
+				proposed_probs[int(indices[i])] = new_labels[i]
+			probs_emp = torch.reshape(proposed_probs, (y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)))
+			loss = self.BCEL(y_hat, probs_emp)
+		else:
+			loss = self.BCEL(y_hat, y_p)
 		self.train_losses.append([self.current_epoch, loss.item()])
 		self.log("train_loss", loss, prog_bar=True) 
 
