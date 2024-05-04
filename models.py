@@ -118,10 +118,10 @@ class SegmentationModel(pl.LightningModule):
 			labels = y_p.flatten()
 			labels = labels[sorted_idx]
 			num_sample = len(labels)
-			indices = torch.arange(num_sample)
+			indices = torch.arange(num_sample).to(self.device)
 			indices = indices[sorted_idx]
-			proposed_probs = torch.zeros(num_sample)
-			new_labels = torch.zeros(num_sample)
+			proposed_probs = torch.zeros(num_sample).to(self.device)
+			new_labels = torch.zeros(num_sample).to(self.device)
 			if 1: #self.finetune_type == 'bin':
 				for i in range(n_bins):
 					left = int(i * num_sample / n_bins)
