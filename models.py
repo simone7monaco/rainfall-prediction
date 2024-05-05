@@ -110,7 +110,7 @@ class SegmentationModel(pl.LightningModule):
 			y_p.append(y.gt(self.thresholds[i]).float())
 		y_p=torch.cat(y_p, dim=1)
 
-		if (self.current_epoch > 0 and self.current_epoch %2==0): #change to best epoch
+		if (self.current_epoch > 42 and self.current_epoch %2==0): #change to best epoch
 			#sort to calculate bins
 			n_bins=10
 			sorted_idx = torch.argsort(y_hat_prob[:, :, self.mask==1].flatten())
@@ -137,8 +137,9 @@ class SegmentationModel(pl.LightningModule):
 			# 											targets_probs[left:right], labels[left:right], scale=self.sigma)
 			#else:
 			#	raise NotImplementedError
-			#else:
-				
+			else:
+				bins = torch.linspace(0, 1, n_bins+1).to(self.device)
+				bins_index = torch.bucketize(y_hat_prob[:,:,self.mask==1].flatten(), bins, right=True)
 			j=0
 			for i in range(num_mask): 
 				if(flat_mask[i%len(self.mask)] == 1):
