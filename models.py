@@ -113,14 +113,16 @@ class SegmentationModel(pl.LightningModule):
 		if (self.current_epoch > 42 and self.current_epoch %2==0): #change to best epoch
 			#sort to calculate bins
 			n_bins=10
-			sorted_idx = torch.argsort(y_hat_prob.flatten())
+			sorted_idx = torch.argsort(y_hat_prob[:, :, self.mask==1].flatten())
 			#targets_probs = y_hat_prob[sorted_idx]
 			labels = y_p.flatten()
 			labels = labels[sorted_idx]
 			num_sample = len(labels)
 			indices = torch.arange(num_sample).to(self.device)
 			indices = indices[sorted_idx]
-			proposed_probs = torch.zeros(num_sample).to(self.device)
+			flat_mask = self.mask.flatten()
+			num_mask = len(flat_mask)
+			proposed_probs = torch.zeros(num_mask).to(self.device)
 			new_labels = torch.zeros(num_sample).to(self.device)
 			if 1: #self.finetune_type == 'bin':
 				for i in range(n_bins):
@@ -135,9 +137,12 @@ class SegmentationModel(pl.LightningModule):
 			# 											targets_probs[left:right], labels[left:right], scale=self.sigma)
 			#else:
 			#	raise NotImplementedError
-
-			for i in range(num_sample):
-				proposed_probs[int(indices[i])] = new_labels[i]
+			j=0
+			for i in range(num_mask*y_p.size(0)*y_p.size(1)): #mask*n_sample*n_layer
+				if(flat_mask[i%num_mask] == 0):
+					continue
+				proposed_probs[int(indices[j])] = new_labels[j]
+				j+=1
 			probs_emp = torch.reshape(proposed_probs, (y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)))
 			loss = self.BCEL(y_hat, probs_emp)
 		else:
