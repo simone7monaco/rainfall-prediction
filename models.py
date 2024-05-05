@@ -144,9 +144,9 @@ class SegmentationModel(pl.LightningModule):
 				proposed_probs[int(indices[j])] = new_labels[j]
 				j+=1
 			probs_emp = torch.reshape(proposed_probs, (y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)))
-			loss = self.BCEL(y_hat, probs_emp)
+			loss = self.BCEL(y_hat[:,:,self.mask==1], probs_emp[:,:,self.mask==1])
 		else:
-			loss = self.BCEL(y_hat, y_p)
+			loss = self.BCEL(y_hat[:,:,self.mask==1], y_p[:,:,self.mask==1])
 		self.train_losses.append([self.current_epoch, loss.item()])
 		self.log("train_loss", loss, prog_bar=True) 
 
