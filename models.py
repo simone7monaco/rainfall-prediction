@@ -146,7 +146,7 @@ class SegmentationModel(pl.LightningModule):
 				bins_index = torch.bucketize(probs_mask, bins, right=True).to(self.device)
 				for i in range(n_bins):
 					inx = torch.where(bins_index==i)
-					probs_emp[inx] = torch.mean(probs_mask[inx])
+					probs_emp[inx] = torch.mean(y_p[inx])
 			loss = self.BCEL(y_hat[:,:,self.mask==1], probs_emp[:,:,self.mask==1])
 		else:
 			loss = self.BCEL(y_hat[:,:,self.mask==1], y_p[:,:,self.mask==1])
