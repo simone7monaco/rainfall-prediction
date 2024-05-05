@@ -124,11 +124,11 @@ class SegmentationModel(pl.LightningModule):
 			# num_mask = len(flat_mask)*y_p.size(0)*y_p.size(1) #mask*n_sample*n_layer
 			# proposed_probs = torch.zeros(num_mask).to(self.device)
 			# new_labels = torch.zeros(num_sample).to(self.device)
-			if 1: #self.finetune_type == 'bin':
-				for i in range(n_bins):
-					left = int(i * num_sample / n_bins)
-					right = int((i + 1) * num_sample / n_bins)
-					new_labels[left:right] = torch.mean((labels[left:right]))
+			# if 1: #self.finetune_type == 'bin':
+			# 	for i in range(n_bins):
+			# 		left = int(i * num_sample / n_bins)
+			# 		right = int((i + 1) * num_sample / n_bins)
+			# 		new_labels[left:right] = torch.mean((labels[left:right]))
 			# elif self.finetune_type == 'kde':
 			# 	for i in range(num_sample):
 			# 		left = np.maximum(0, i - self.window)
