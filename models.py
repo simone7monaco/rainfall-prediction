@@ -137,12 +137,13 @@ class SegmentationModel(pl.LightningModule):
 			# 											targets_probs[left:right], labels[left:right], scale=self.sigma)
 			#else:
 			#	raise NotImplementedError
+			#else:
+				
 			j=0
 			for i in range(num_mask*y_p.size(0)*y_p.size(1)): #mask*n_sample*n_layer
-				if(flat_mask[i%num_mask] == 0):
-					continue
-				proposed_probs[int(indices[j])] = new_labels[j]
-				j+=1
+				if(flat_mask[i%num_mask] == 1):
+					proposed_probs[int(indices[j])] = new_labels[j]
+					j+=1
 			probs_emp = torch.reshape(proposed_probs, (y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)))
 			loss = self.BCEL(y_hat[:,:,self.mask==1], probs_emp[:,:,self.mask==1])
 		else:
