@@ -121,7 +121,7 @@ class SegmentationModel(pl.LightningModule):
 			indices = torch.arange(num_sample).to(self.device)
 			indices = indices[sorted_idx]
 			flat_mask = self.mask.flatten()
-			num_mask = len(flat_mask)
+			num_mask = len(flat_mask)*y_p.size(0)*y_p.size(1) #mask*n_sample*n_layer
 			proposed_probs = torch.zeros(num_mask).to(self.device)
 			new_labels = torch.zeros(num_sample).to(self.device)
 			if 1: #self.finetune_type == 'bin':
@@ -140,8 +140,8 @@ class SegmentationModel(pl.LightningModule):
 			#else:
 				
 			j=0
-			for i in range(num_mask*y_p.size(0)*y_p.size(1)): #mask*n_sample*n_layer
-				if(flat_mask[i%num_mask] == 1):
+			for i in range(num_mask): 
+				if(flat_mask[i%len(self.mask)] == 1):
 					proposed_probs[int(indices[j])] = new_labels[j]
 					j+=1
 			probs_emp = torch.reshape(proposed_probs, (y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)))
