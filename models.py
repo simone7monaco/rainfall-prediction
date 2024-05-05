@@ -113,17 +113,17 @@ class SegmentationModel(pl.LightningModule):
 		if (self.current_epoch > 42 and self.current_epoch %2==0): #change to best epoch
 			#sort to calculate bins
 			n_bins=10
-			sorted_idx = torch.argsort(y_hat_prob[:, :, self.mask==1].flatten())
+			#sorted_idx = torch.argsort(y_hat_prob[:, :, self.mask==1].flatten()) ########
 			#targets_probs = y_hat_prob[sorted_idx]
-			labels = y_p.flatten()
-			labels = labels[sorted_idx]
-			num_sample = len(labels)
-			indices = torch.arange(num_sample).to(self.device)
-			indices = indices[sorted_idx]
-			flat_mask = self.mask.flatten()
-			num_mask = len(flat_mask)*y_p.size(0)*y_p.size(1) #mask*n_sample*n_layer
-			proposed_probs = torch.zeros(num_mask).to(self.device)
-			new_labels = torch.zeros(num_sample).to(self.device)
+			# labels = y_p.flatten()
+			# labels = labels[sorted_idx]
+			# num_sample = len(labels)
+			# indices = torch.arange(num_sample).to(self.device)
+			# indices = indices[sorted_idx]
+			# flat_mask = self.mask.flatten()
+			# num_mask = len(flat_mask)*y_p.size(0)*y_p.size(1) #mask*n_sample*n_layer
+			# proposed_probs = torch.zeros(num_mask).to(self.device)
+			# new_labels = torch.zeros(num_sample).to(self.device)
 			if 1: #self.finetune_type == 'bin':
 				for i in range(n_bins):
 					left = int(i * num_sample / n_bins)
@@ -137,15 +137,16 @@ class SegmentationModel(pl.LightningModule):
 			# 											targets_probs[left:right], labels[left:right], scale=self.sigma)
 			#else:
 			#	raise NotImplementedError
+			if 0:
+				a=1
 			else:
-				bins = torch.linspace(0, 1, n_bins+1).to(self.device)
-				bins_index = torch.bucketize(y_hat_prob[:,:,self.mask==1].flatten(), bins, right=True)
-			j=0
-			for i in range(num_mask): 
-				if(flat_mask[i%len(self.mask)] == 1):
-					proposed_probs[int(indices[j])] = new_labels[j]
-					j+=1
-			probs_emp = torch.reshape(proposed_probs, (y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)))
+				probs_emp = torch.zeros([y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)]).to(self.device)
+				probs_mask = y_hat_prob
+				bins = torch.linspace(1/n_bins, 1, n_bins).to(self.device)
+				bins_index = torch.bucketize(probs_mask, bins, right=True).to(self.device)
+				for i in range(n_bins):
+					inx = torch.where(bins_index==i)
+					probs_emp[inx] = torch.mean(probs_mask[inx])
 			loss = self.BCEL(y_hat[:,:,self.mask==1], probs_emp[:,:,self.mask==1])
 		else:
 			loss = self.BCEL(y_hat[:,:,self.mask==1], y_p[:,:,self.mask==1])
