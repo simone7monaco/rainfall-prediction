@@ -31,7 +31,7 @@ def get_args(args=None):
 	parser.add_argument("--seed", type=int, default=42)
 	parser.add_argument("--forward_passes", type=int, default=1)
 	parser.add_argument("--code_version", type=int, default=4)
-	parser.add_argument("--fine_tune", type=int, default=1)
+	parser.add_argument("--fine_tune", type=int, default=0)
 	parser.add_argument("--epochs_fn", "-f", type=int, default=30)
 	parser.add_argument("--finetune_type", type=str, default='bin', choices=['mine', 'bin'])
 	args = parser.parse_args(args)
