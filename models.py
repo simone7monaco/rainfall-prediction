@@ -52,6 +52,7 @@ class SegmentationModel(pl.LightningModule):
 		self.test_predictions = []
 		
 		self.sigma = 0.1
+		self.window = 1000
 
 		self.train_losses = []
 		self.val_losses = []
