@@ -143,10 +143,11 @@ class SegmentationModel(pl.LightningModule):
 				elif self.hparams.finetune_type == 'kde':
 					targets_probs.detach().cpu().numpy()
 					labels.detach().cpu().numpy()
+					sigma=self.sigma.cpu()
 					for i in range(num_sample):
 						left = np.maximum(0, i - self.window)
 						right = np.minimum(i + self.window, num_sample)
-						new_labels[i] = self.get_new_prob(targets_probs[i], targets_probs[left:right], labels[left:right], scale=self.sigma)
+						new_labels[i] = self.get_new_prob(targets_probs[i], targets_probs[left:right], labels[left:right], scale=sigma)
 					new_labels = torch.from_numpy(new_labels).to(self.device)
 				# j=0
 				# for i in range(num_mask): 
