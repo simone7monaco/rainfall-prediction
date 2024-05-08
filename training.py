@@ -32,6 +32,7 @@ def get_args(args=None):
 	parser.add_argument("--forward_passes", type=int, default=1)
 	parser.add_argument("--code_version", type=int, default=4)
 	parser.add_argument("--fine_tune", type=int, default=1)
+	parser.add_argument("--epochs_fn", "-f", type=int, default=3)
 	args = parser.parse_args(args)
 	return args
 	
@@ -86,7 +87,7 @@ def main(args):
 		model.fine_tune =1
 		trainer = pl.Trainer(
 			accelerator='gpu' if cuda.is_available() else 'cpu',
-			max_epochs=args.epochs+5,
+			max_epochs=args.epochs_fn,
 			callbacks=[model_checkpoint],
 			log_every_n_steps=1,
 			logger=logger # default is TensorBoard
