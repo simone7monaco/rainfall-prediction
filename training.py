@@ -31,6 +31,7 @@ def get_args(args=None):
 	parser.add_argument("--seed", type=int, default=42)
 	parser.add_argument("--forward_passes", type=int, default=1)
 	parser.add_argument("--code_version", type=int, default=4)
+	parser.add_argument("--fine_tune", type=int, default=1)
 	args = parser.parse_args(args)
 	return args
 	
@@ -49,6 +50,9 @@ def main(args):
 	output_path /= f'{args.network_model}'
 	
 	args.input_path = input_path
+	if args.fine_tune == 1:
+		fine_tune=1
+		args.fine_tune=0
     
 	if args.epochs > 1 and not args.load_checkpoint:
 		logger = WandbLogger(project='rainfall_prediction')   
@@ -77,7 +81,10 @@ def main(args):
 		trainer = pl.Trainer(accelerator='gpu' if cuda.is_available() else 'cpu')
 		print(f"\n⬆️  Loading checkpoint {args.load_checkpoint}")
 		model = SegmentationModel.load_from_checkpoint(args.load_checkpoint)
-		
+	
+	if fine_tune == 1:
+		model.fine_tune =1
+		trainer.fit(model)
 
 	if model.hparams.mcdropout:
 		model.get_monte_carlo_predictions(forward_passes=args.forward_passes, save_dir=Path('reports'))
