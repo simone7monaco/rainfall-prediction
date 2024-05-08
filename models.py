@@ -42,6 +42,7 @@ class SegmentationModel(pl.LightningModule):
 		self.brierLoss = BrierLoss()
 		self.sigmoid = nn.Sigmoid()
 		self.BCEL = nn.BCEWithLogitsLoss()
+		self.BCE = nn.BCELoss()
 		#self.loss = lambda y_hat, y: F.mse_loss(y_hat * self.mask, y * self.mask)
 
 		self.rmse = lambda loss: (loss*(self.case_study_max**2)).sqrt().item()
@@ -113,16 +114,17 @@ class SegmentationModel(pl.LightningModule):
 			n_bins=10
 			if self.hparams.finetune_type == 'bin' or self.hparams.finetune_type == 'kde':
 				#sort to calculate bins
-				sorted_idx = torch.argsort(y_hat_prob[:, :, self.mask==1].flatten()) ########
-				targets_probs = y_hat_prob[sorted_idx]
-				labels = y_p.flatten()
+				y_hat_prob_mask = y_hat_prob[:, :, self.mask==1].flatten()
+				sorted_idx = torch.argsort(y_hat_prob_mask) ########
+				targets_probs = y_hat_prob_mask[sorted_idx]
+				labels = y_p[:, :, self.mask==1].flatten()
 				labels = labels[sorted_idx]
 				num_sample = len(labels)
-				indices = torch.arange(num_sample).to(self.device)
-				indices = indices[sorted_idx]
-				flat_mask = self.mask.flatten()
-				num_mask = len(flat_mask)*y_p.size(0)*y_p.size(1) #mask*n_sample*n_layer
-				proposed_probs = torch.zeros(num_mask).to(self.device)
+				#indices = torch.arange(num_sample).to(self.device)
+				#indices = indices[sorted_idx]
+				#flat_mask = self.mask.flatten()
+				#num_mask = len(flat_mask)*y_p.size(0)*y_p.size(1) #mask*n_sample*n_layer
+				#proposed_probs = torch.zeros(num_mask).to(self.device)
 				new_labels = torch.zeros(num_sample).to(self.device)
 				if self.hparams.finetune_type == 'bin':
 					for i in range(n_bins):
@@ -134,13 +136,13 @@ class SegmentationModel(pl.LightningModule):
 						left = np.maximum(0, i - self.window)
 						right = np.minimum(i + self.window, num_sample)
 						new_labels[i] = self.get_new_prob(targets_probs[i], targets_probs[left:right], labels[left:right], scale=self.sigma)
-				j=0
-				for i in range(num_mask): 
-					if(flat_mask[i%len(self.mask)] == 1):
-						proposed_probs[int(indices[j])] = new_labels[j]
-						j+=1
-				probs_emp = torch.reshape(proposed_probs, (y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)))
-				loss = self.BCEL(y_hat[:,:,self.mask==1], probs_emp[:,:,self.mask==1])
+				# j=0
+				# for i in range(num_mask): 
+				# 	if(flat_mask[i%len(self.mask)] == 1):
+				# 		proposed_probs[int(indices[j])] = new_labels[j]
+				# 		j+=1
+				# probs_emp = torch.reshape(proposed_probs, (y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)))
+				loss1 = self.BCE(targets_probs, new_labels)
 			elif self.hparams.finetune_type == 'mine':
 				probs_emp = torch.zeros([y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)]).to(self.device)
 				probs_mask = y_hat_prob
@@ -158,7 +160,7 @@ class SegmentationModel(pl.LightningModule):
 		self.train_losses.append([self.current_epoch, loss.item()])
 		self.log("train_loss", loss + loss1, prog_bar=True) 
 
-		return 0.1*loss + loss1
+		return loss + loss1
 
 	def validation_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
