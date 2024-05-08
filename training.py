@@ -52,6 +52,7 @@ def main(args):
 	output_path /= f'{args.network_model}'
 	
 	args.input_path = input_path
+	fine_tune=0
 	if args.fine_tune == 1:
 		fine_tune=1
 		args.fine_tune=0
