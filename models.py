@@ -109,7 +109,7 @@ class SegmentationModel(pl.LightningModule):
 		for i in range(len(self.thresholds)):
 			y_p.append(y.gt(self.thresholds[i]).float())
 		y_p=torch.cat(y_p, dim=1)
-		if (self.hparams.fine_tune ==1 and self.current_epoch %2==0): 
+		if (self.hparams.fine_tune ==1): #and self.current_epoch %2==0): 
 			n_bins=10
 			if self.hparams.finetune_type == 'bin' or self.hparams.finetune_type == 'kde':
 				#sort to calculate bins
@@ -149,16 +149,16 @@ class SegmentationModel(pl.LightningModule):
 				for i in range(n_bins):
 					inx = torch.where(bins_index==i)
 					probs_emp[inx] = torch.mean(y_p[inx])
-				loss = self.BCEL(y_hat[:,:,self.mask==1], probs_emp[:,:,self.mask==1])
+				loss1 = self.BCEL(y_hat[:,:,self.mask==1], probs_emp[:,:,self.mask==1])
 			else:
 				raise NotImplementedError
 			
-		else:
-			loss = self.BCEL(y_hat[:,:,self.mask==1], y_p[:,:,self.mask==1])
+		#else:
+		loss = self.BCEL(y_hat[:,:,self.mask==1], y_p[:,:,self.mask==1])
 		self.train_losses.append([self.current_epoch, loss.item()])
-		self.log("train_loss", loss, prog_bar=True) 
+		self.log("train_loss", loss + loss1, prog_bar=True) 
 
-		return loss
+		return loss + loss1
 
 	def validation_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
