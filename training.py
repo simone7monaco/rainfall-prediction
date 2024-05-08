@@ -84,6 +84,13 @@ def main(args):
 	
 	if fine_tune == 1:
 		model.fine_tune =1
+		trainer = pl.Trainer(
+			accelerator='gpu' if cuda.is_available() else 'cpu',
+			max_epochs=args.epochs+5,
+			callbacks=[model_checkpoint],
+			log_every_n_steps=1,
+			logger=logger # default is TensorBoard
+		)
 		trainer.fit(model)
 
 	if model.hparams.mcdropout:
