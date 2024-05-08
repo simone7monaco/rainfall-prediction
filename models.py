@@ -160,7 +160,7 @@ class SegmentationModel(pl.LightningModule):
 		self.train_losses.append([self.current_epoch, loss.item()])
 		self.log("train_loss", loss + loss1, prog_bar=True) 
 
-		return loss + loss1
+		return loss + 0.3*loss1
 
 	def validation_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
