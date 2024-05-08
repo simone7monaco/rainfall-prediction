@@ -52,7 +52,7 @@ class SegmentationModel(pl.LightningModule):
 		self.test_predictions = []
 		
 		self.sigma = 0.1
-		self.window = 1000
+		self.window = 500
 
 		self.train_losses = []
 		self.val_losses = []
@@ -108,8 +108,8 @@ class SegmentationModel(pl.LightningModule):
 		return DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False, num_workers=NUM_WORKERS)
 
 	def get_new_prob(self, mean_value, prob_array, true_array, scale):
-		weight = torch.from_numpy(scipy.stats.norm.pdf(prob_array.detach().cpu(), loc=mean_value.detach().cpu(), scale=scale)).to(self.device)
-		return torch.sum(weight * true_array) / torch.sum(weight)
+		weight = scipy.stats.norm.pdf(prob_array, loc=mean_value, scale=scale)
+		return np.sum(weight * true_array) / np.sum(weight)
 	
 	def training_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
@@ -141,10 +141,13 @@ class SegmentationModel(pl.LightningModule):
 						right = int((i + 1) * num_sample / n_bins)
 						new_labels[left:right] = torch.mean((labels[left:right]))
 				elif self.hparams.finetune_type == 'kde':
+					targets_probs.detach().cpu().numpy()
+					labels.detach().cpu().numpy()
 					for i in range(num_sample):
 						left = np.maximum(0, i - self.window)
 						right = np.minimum(i + self.window, num_sample)
 						new_labels[i] = self.get_new_prob(targets_probs[i], targets_probs[left:right], labels[left:right], scale=self.sigma)
+					new_labels = torch.from_numpy(new_labels).to(self.device)
 				# j=0
 				# for i in range(num_mask): 
 				# 	if(flat_mask[i%len(self.mask)] == 1):
