@@ -109,7 +109,7 @@ class SegmentationModel(pl.LightningModule):
 		for i in range(len(self.thresholds)):
 			y_p.append(y.gt(self.thresholds[i]).float())
 		y_p=torch.cat(y_p, dim=1)
-		if self.hparams.fine_tune ==1:
+		if self.hparams.fine_tune ==0:
 			print("wow")
 		if (self.current_epoch > 40 and self.current_epoch %2==0): #change to best epoch
 			#sort to calculate bins
