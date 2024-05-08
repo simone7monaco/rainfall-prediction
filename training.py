@@ -25,14 +25,15 @@ def get_args(args=None):
 	# parser.add_argument("--split_idx", type=str, default="701515")
 	parser.add_argument("--n_split", type=int, default=8)
 	parser.add_argument("--lr", type=float, default=1e-4)
-	parser.add_argument("--epochs", "-e", type=int, default=150)
+	parser.add_argument("--epochs", "-e", type=int, default=50)
 	parser.add_argument("--mcdropout", type=float, default=0)
 	parser.add_argument("--load_checkpoint", type=Path, default=None)
 	parser.add_argument("--seed", type=int, default=42)
 	parser.add_argument("--forward_passes", type=int, default=1)
 	parser.add_argument("--code_version", type=int, default=4)
 	parser.add_argument("--fine_tune", type=int, default=1)
-	parser.add_argument("--epochs_fn", "-f", type=int, default=3)
+	parser.add_argument("--epochs_fn", "-f", type=int, default=30)
+	parser.add_argument("--finetune_type", type=int, default='mine', choices=['mine', 'bin'])
 	args = parser.parse_args(args)
 	return args
 	
@@ -77,7 +78,7 @@ def main(args):
 		trainer.fit(model)
 
 		print(f"\nLoading best model ({model_checkpoint.best_model_path})")
-		model = SegmentationModel.load_from_checkpoint(model_checkpoint.best_model_path, fine_tune =1)
+		model = SegmentationModel.load_from_checkpoint(model_checkpoint.best_model_path, fine_tune=fine_tune)
 	else:
 		trainer = pl.Trainer(accelerator='gpu' if cuda.is_available() else 'cpu')
 		print(f"\n⬆️  Loading checkpoint {args.load_checkpoint}")
