@@ -32,7 +32,7 @@ def get_args(args=None):
 	parser.add_argument("--forward_passes", type=int, default=1)
 	parser.add_argument("--code_version", type=int, default=4)
 	parser.add_argument("--fine_tune", type=int, default=1)
-	parser.add_argument("--epochs_fn", "-f", type=int, default=30)
+	parser.add_argument("--epochs_fn", "-f", type=int, default=3)
 	parser.add_argument("--finetune_type", type=str, default='bin', choices=['mine', 'bin'])
 	args = parser.parse_args(args)
 	return args
@@ -79,11 +79,11 @@ def main(args):
 		trainer.fit(model)
 
 		print(f"\nLoading best model ({model_checkpoint.best_model_path})")
-		model = SegmentationModel.load_from_checkpoint(model_checkpoint.best_model_path, fine_tune=fine_tune)
+		model = SegmentationModel.load_from_checkpoint(model_checkpoint.best_model_path, fine_tune=fine_tune, finetune_type=args.finetune_type)
 	else:
 		trainer = pl.Trainer(accelerator='gpu' if cuda.is_available() else 'cpu')
 		print(f"\n⬆️  Loading checkpoint {args.load_checkpoint}")
-		model = SegmentationModel.load_from_checkpoint(args.load_checkpoint, fine_tune=fine_tune)
+		model = SegmentationModel.load_from_checkpoint(args.load_checkpoint, fine_tune=fine_tune, finetune_type=args.finetune_type)
 	
 	if fine_tune == 1:
 		model_checkpoint = ModelCheckpoint(output_path / f"split_{args.n_split}", monitor='val_loss', mode='min', filename='{epoch}-{val_loss:.2f}')
