@@ -82,7 +82,7 @@ def main(args):
 	else:
 		trainer = pl.Trainer(accelerator='gpu' if cuda.is_available() else 'cpu')
 		print(f"\n⬆️  Loading checkpoint {args.load_checkpoint}")
-		model = SegmentationModel.load_from_checkpoint(args.load_checkpoint)
+		model = SegmentationModel.load_from_checkpoint(args.load_checkpoint, fine_tune=fine_tune)
 	
 	if fine_tune == 1:
 		trainer = pl.Trainer(

@@ -133,8 +133,14 @@ class SegmentationModel(pl.LightningModule):
 					for i in range(num_sample):
 						left = np.maximum(0, i - self.window)
 						right = np.minimum(i + self.window, num_sample)
-						new_labels[i] = self.get_new_prob(targets_probs[i],
-															targets_probs[left:right], labels[left:right], scale=self.sigma)
+						new_labels[i] = self.get_new_prob(targets_probs[i], targets_probs[left:right], labels[left:right], scale=self.sigma)
+				j=0
+				for i in range(num_mask): 
+					if(flat_mask[i%len(self.mask)] == 1):
+						proposed_probs[int(indices[j])] = new_labels[j]
+						j+=1
+				probs_emp = torch.reshape(proposed_probs, (y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)))
+				loss = self.BCEL(y_hat[:,:,self.mask==1], probs_emp[:,:,self.mask==1])
 			elif self.hparams.finetune_type == 'mine':
 				probs_emp = torch.zeros([y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)]).to(self.device)
 				probs_mask = y_hat_prob
