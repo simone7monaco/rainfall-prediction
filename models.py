@@ -110,6 +110,7 @@ class SegmentationModel(pl.LightningModule):
 		for i in range(len(self.thresholds)):
 			y_p.append(y.gt(self.thresholds[i]).float())
 		y_p=torch.cat(y_p, dim=1)
+		loss1=0
 		if (self.hparams.fine_tune ==1): #and self.current_epoch %2==0):
 			n_bins=10
 			if self.hparams.finetune_type == 'bin' or self.hparams.finetune_type == 'kde':
