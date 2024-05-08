@@ -85,6 +85,7 @@ def main(args):
 		model = SegmentationModel.load_from_checkpoint(args.load_checkpoint, fine_tune=fine_tune)
 	
 	if fine_tune == 1:
+		model_checkpoint = ModelCheckpoint(output_path / f"split_{args.n_split}", monitor='val_loss', mode='min', filename='{epoch}-{val_loss:.2f}')
 		trainer = pl.Trainer(
 			accelerator='gpu' if cuda.is_available() else 'cpu',
 			max_epochs=args.epochs_fn,
