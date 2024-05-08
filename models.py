@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 from sklearn.calibration import calibration_curve
+import scipy
 
 import torch
 import torch.nn as nn
@@ -49,6 +50,8 @@ class SegmentationModel(pl.LightningModule):
 		self.thresholds = [1/self.case_study_max, 5/self.case_study_max, 10/self.case_study_max, 20/self.case_study_max, 50/self.case_study_max, 100/self.case_study_max, 150/self.case_study_max]
 		self.metrics = [] #[freqbias, ets, csi]
 		self.test_predictions = []
+		
+		self.sigma = 0.1
 
 		self.train_losses = []
 		self.val_losses = []
@@ -102,6 +105,10 @@ class SegmentationModel(pl.LightningModule):
 									torch.from_numpy(self.y_test).unsqueeze(1),
 									torch.from_numpy(self.test_dates)))
 		return DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False, num_workers=NUM_WORKERS)
+
+	def get_new_prob(self, mean_value, prob_array, true_array, scale):
+		weight = scipy.stats.norm.pdf(prob_array, loc=mean_value, scale=scale)
+		return torch.sum(weight * true_array) / torch.sum(weight)
 	
 	def training_step(self, batch, batch_idx):
 		x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
@@ -436,6 +443,7 @@ class SegmentationModel(pl.LightningModule):
 		plt.legend()
 		plt.savefig("brier_scores.png")
 		# plt.savefig(Path(self.logger.log_dir)/"brier_scores.png")
+
   
 
 class BrierLoss(nn.Module):
