@@ -108,7 +108,7 @@ class SegmentationModel(pl.LightningModule):
 		return DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False, num_workers=NUM_WORKERS)
 
 	def get_new_prob(self, mean_value, prob_array, true_array, scale):
-		weight = scipy.stats.norm.pdf(prob_array.cpu(), loc=mean_value, scale=scale).to(self.device)
+		weight = scipy.stats.norm.pdf(prob_array.detach().cpu(), loc=mean_value, scale=scale).to(self.device)
 		return torch.sum(weight * true_array) / torch.sum(weight)
 	
 	def training_step(self, batch, batch_idx):
