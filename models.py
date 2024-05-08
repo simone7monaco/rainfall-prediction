@@ -127,6 +127,7 @@ class SegmentationModel(pl.LightningModule):
 				#proposed_probs = torch.zeros(num_mask).to(self.device)
 				new_labels = torch.zeros(num_sample).to(self.device)
 				if self.hparams.finetune_type == 'bin':
+					print("bin")
 					for i in range(n_bins):
 						left = int(i * num_sample / n_bins)
 						right = int((i + 1) * num_sample / n_bins)
