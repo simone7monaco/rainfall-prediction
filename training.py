@@ -77,14 +77,13 @@ def main(args):
 		trainer.fit(model)
 
 		print(f"\nLoading best model ({model_checkpoint.best_model_path})")
-		model = SegmentationModel.load_from_checkpoint(model_checkpoint.best_model_path)
+		model = SegmentationModel.load_from_checkpoint(model_checkpoint.best_model_path, fine_tune =1)
 	else:
 		trainer = pl.Trainer(accelerator='gpu' if cuda.is_available() else 'cpu')
 		print(f"\n⬆️  Loading checkpoint {args.load_checkpoint}")
 		model = SegmentationModel.load_from_checkpoint(args.load_checkpoint)
 	
 	if fine_tune == 1:
-		model.fine_tune =1
 		trainer = pl.Trainer(
 			accelerator='gpu' if cuda.is_available() else 'cpu',
 			max_epochs=args.epochs_fn,
