@@ -275,7 +275,17 @@ class SegmentationModel(pl.LightningModule):
 				Image.fromarray(tensor_to_img(image[i:i+1])).convert('L').save(respath/f"{batch_idx}_{img_idx}_m{i}.png")
 
 	def configure_optimizers(self):
-		return torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
+		optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
+		return {
+        	"optimizer": optimizer,
+        	"lr_scheduler": {
+            "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.8),
+            "monitor": "val_loss",
+            "frequency": "1",
+            # If "monitor" references validation metrics, then "frequency" should be set to a
+            # multiple of "trainer.check_val_every_n_epoch".
+        	},
+    	}
 	
 	def get_monte_carlo_predictions(self, forward_passes=20, save_dir=None):
 		""" Function to get the monte-carlo samples and uncertainty estimates
