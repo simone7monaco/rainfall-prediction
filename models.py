@@ -120,7 +120,7 @@ class SegmentationModel(pl.LightningModule):
 		y_p=torch.cat(y_p, dim=1)
 		loss1=0
 		if (self.hparams.fine_tune ==1): #and self.current_epoch %2==0):
-			n_bins=10
+			n_bins=100
 			if self.hparams.finetune_type == 'bin' or self.hparams.finetune_type == 'kde':
 				#sort to calculate bins
 				y_hat_prob_mask = y_hat_prob[:, :, self.mask==1].flatten()

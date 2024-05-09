@@ -32,8 +32,8 @@ def get_args(args=None):
 	parser.add_argument("--forward_passes", type=int, default=1)
 	parser.add_argument("--code_version", type=int, default=4)
 	parser.add_argument("--fine_tune", type=int, default=1)
-	parser.add_argument("--epochs_fn", "-f", type=int, default=5)
-	parser.add_argument("--finetune_type", type=str, default='kde', choices=['mine', 'bin', 'kde'])
+	parser.add_argument("--epochs_fn", "-f", type=int, default=30)
+	parser.add_argument("--finetune_type", type=str, default='bin', choices=['mine', 'bin', 'kde'])
 	args = parser.parse_args(args)
 	return args
 	
@@ -66,14 +66,14 @@ def main(args):
 		logger = WandbLogger(project='rainfall_prediction')
 
 	if not args.load_checkpoint:
-		early_stop = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=10, verbose=False, mode="min")
+		early_stop = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=25, verbose=False, mode="min")
 		model_checkpoint = ModelCheckpoint(output_path / f"split_{args.n_split}", monitor='val_loss', mode='min', filename='{epoch}-{val_loss:.2f}')
 		
 		model = SegmentationModel(**args.__dict__)
 		trainer = pl.Trainer(
 			accelerator='gpu' if cuda.is_available() else 'cpu',
 			max_epochs=args.epochs,
-			callbacks=[model_checkpoint],
+			callbacks=[model_checkpoint, early_stop],
 			log_every_n_steps=1,
 			logger=logger # default is TensorBoard
 		)
