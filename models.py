@@ -148,7 +148,7 @@ class SegmentationModel(pl.LightningModule):
 						left = np.maximum(0, i - self.window)
 						right = np.minimum(i + self.window, num_sample)
 						new_labels[i] = self.get_new_prob(targets_probs_np[i], targets_probs_np[left:right], labels[left:right], scale=sigma)
-					new_labels = torch.from_numpy(new_labels).to(self.device)
+					#new_labels = torch.from_numpy(new_labels).to(self.device)
 				# j=0
 				# for i in range(num_mask): 
 				# 	if(flat_mask[i%len(self.mask)] == 1):
