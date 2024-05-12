@@ -412,7 +412,7 @@ class SegmentationModel(pl.LightningModule):
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(
-                    optimizer, factor=0.8
+                    optimizer, factor=0.5
                 ),
                 "monitor": "val_loss",
                 "frequency": 1,
