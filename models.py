@@ -206,7 +206,8 @@ class SegmentationModel(pl.LightningModule):
             y_p.append(y.gt(self.thresholds[i]).float())
         y_p = torch.cat(y_p, dim=1)
         loss1 = 0
-        if self.hparams.fine_tune == 1:  # and self.current_epoch %2==0):
+        loss2 = 0
+        if self.hparams.fine_tune == 1 and self.current_epoch %2==0:
             n_bins = 100
             if (
                 self.hparams.finetune_type == "bin"
@@ -269,12 +270,12 @@ class SegmentationModel(pl.LightningModule):
             else:
                 raise NotImplementedError
 
-        # else:
-        loss2 = self.BCEL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
-        loss = 0.3 * loss1 + loss2
+        else:
+            loss2 = self.BCEL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
+        loss = loss1 + loss2
         self.train_losses.append([self.current_epoch, loss.item()])
         self.log("train_loss", loss, prog_bar=True)
-
+        
         return loss
 
     def validation_step(self, batch, batch_idx):
