@@ -285,9 +285,11 @@ class SegmentationModel(pl.LightningModule):
         for i in range(len(self.thresholds)):
             y_p.append(y.gt(self.thresholds[i]).float())
         y_p = torch.cat(y_p, dim=1)
-        loss = self.BCEL(y_hat, y_p)
+        loss = self.BCEL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
+        MSEp = self.loss(y_hat_prob[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
         self.val_losses.append([self.current_epoch, loss.item()])
         self.log("val_loss", loss, prog_bar=True)
+        self.log("MSEp_loss", MSEp, prog_bar=True)
 
         if self.current_epoch % 10 == 0:
             for metric in self.metrics:
