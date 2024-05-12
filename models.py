@@ -304,6 +304,13 @@ class SegmentationModel(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         x, y, ev_date = batch["x"], batch["y"], batch.get("ev_date")
         y_hat, y_hat_prob = self.forward(x, ev_date)
+        
+        y_p = []
+        for i in range(len(self.thresholds)):
+            y_p.append(y.gt(self.thresholds[i]).float())
+        y_p = torch.cat(y_p, dim=1)
+        MSEp = self.loss(y_hat_prob[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
+        self.log("test_MSEp", MSEp, prog_bar=True)
 
         self.test_predictions.append(y_hat)
 
