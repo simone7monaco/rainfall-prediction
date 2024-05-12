@@ -39,7 +39,7 @@ def get_args(args=None):
     parser.add_argument("--forward_passes", type=int, default=1)
     parser.add_argument("--code_version", type=int, default=4)
     parser.add_argument("--fine_tune", type=int, default=1)
-    parser.add_argument("--epochs_fn", "-f", type=int, default=10)
+    parser.add_argument("--epochs_fn", "-f", type=int, default=30)
     parser.add_argument(
         "--finetune_type", type=str, default="bin", choices=["mine", "bin", "kde"]
     )
@@ -123,6 +123,13 @@ def main(args):
             logger=logger,  # default is TensorBoard
         )
         trainer.fit(model)
+        
+        print(f"\nLoading best model ({model_checkpoint.best_model_path})")
+        model = SegmentationModel.load_from_checkpoint(
+            model_checkpoint.best_model_path,
+            fine_tune=fine_tune,
+            finetune_type=args.finetune_type,
+        )
 
     if model.hparams.mcdropout:
         model.get_monte_carlo_predictions(
