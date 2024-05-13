@@ -404,7 +404,7 @@ def ECE(gt, probs):
     return ece
 
 
-def KL(gt, probs, self):
+def KL(gt, probs):
     eps = torch.Tensor([1e-10])
     y_true_gt = gt.squeeze().flatten()
     probs = probs.squeeze().flatten()
@@ -414,5 +414,5 @@ def KL(gt, probs, self):
     ).mean()
     return kl_prob_gt
 
-def AUC(gt, probs, self):
+def AUC(gt, probs):
     return roc_auc_score(y_true=gt.cpu().flatten(), y_score=probs.cpu().flatten())
