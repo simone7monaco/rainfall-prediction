@@ -285,19 +285,20 @@ class SegmentationModel(pl.LightningModule):
             y_p.append(y.gt(self.thresholds[i]).float())
         y_p = torch.cat(y_p, dim=1)
         loss = self.BCEL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
-        brier = self.MSE(y_hat_prob[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
         self.val_losses.append([self.current_epoch, loss.item()])
         self.log("val/loss", loss, prog_bar=True)
-        self.log("val/brierScore", brier, prog_bar=True)
 
-        # for metric in self.metrics:
-        #     for th in self.thresholds:
-        #         self.log(
-        #             f"val_{metric.__name__}_{th*self.case_study_max}",
-        #             metric(
-        #                 y_hat[:, :, self.mask == 1], y[:, :, self.mask == 1], th
-        #             ),
-        #         )
+        for metric in self.metrics:
+            self.log(
+                f"val/{metric.__name__}",
+                metric(y_p[:, :, self.mask == 1], y_hat_prob[:, :, self.mask == 1]),
+            )
+        for metric in self.metrics:
+            for j, th in enumerate(self.thresholds):
+                self.log(
+                    f"val/{metric.__name__} {th*self.case_study_max:.0f}",
+                    metric(y_p[:, j, self.mask == 1], y_hat_prob[:, j, self.mask == 1]),
+                )
 
     def test_step(self, batch, batch_idx):
         x, y, ev_date = batch["x"], batch["y"], batch.get("ev_date")
@@ -307,41 +308,28 @@ class SegmentationModel(pl.LightningModule):
         for i in range(len(self.thresholds)):
             y_p.append(y.gt(self.thresholds[i]).float())
         y_p = torch.cat(y_p, dim=1)
-        brier = self.MSE(y_hat_prob[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
-        self.log("test/brierScore", brier)
 
         self.test_predictions.append(y_hat)
 
         for metric in self.metrics:
             for j, th in enumerate(self.thresholds):
                 self.log(
-                    f"test/{metric.__name__} {th*self.case_study_max}",
+                    f"test/{metric.__name__} {th*self.case_study_max:.0f}",
                     metric(y_p[:, j, self.mask == 1], y_hat_prob[:, j, self.mask == 1]),
                 )
 
-        # Calculating Brier score
-        brier_scores = {}
+        # Calculating Brier score input model
         input_models_brier_score = {}
         lv_thresholds = [1, 5, 10, 20, 50, 100, 150]
         y = y * self.case_study_max
         x = x * self.case_study_max
         for j, lv in enumerate(lv_thresholds):
-
-            brier_scores[lv] = (
-                ((y_hat_prob[:, j] - y.to(self.device).gt(lv).float()) ** 2).mean().item()
-            )
-            brier_scores[lv] = (
-                brier_scores[lv] * (96 * 128) / 5247
-            )  # normalization to mask==1 only
             prob_input_models = (x > lv).float()
-
             input_models_brier_score[lv] = (
                 ((prob_input_models - y.gt(lv).float()) ** 2).mean().item()
             )
 
-            print(f"Brier score for threshold {lv} mm: {brier_scores[lv]:.4f}")
             print(f">Brier score for input models: {input_models_brier_score[lv]:.4f}")
-            self.log(f"Brier score {lv} mm", brier_scores[lv])
 
         # sns.set_style("whitegrid")
 
