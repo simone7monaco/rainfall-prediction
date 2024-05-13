@@ -312,10 +312,10 @@ class SegmentationModel(pl.LightningModule):
         self.test_predictions.append(y_hat)
 
         for metric in self.metrics:
-            for th in self.thresholds:
+            for j, th in enumerate(self.thresholds):
                 self.log(
                     f"test/{metric.__name__} {th*self.case_study_max}",
-                    metric(y_p[:, :, self.mask == 1], y_hat[:, :, self.mask == 1], self),
+                    metric(y_p[:, j], y_hat[:, j], self),
                 )
 
         # Calculating Brier score
