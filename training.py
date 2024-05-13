@@ -11,6 +11,7 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import yaml
 import wandb
+from utils import str2bool
 
 
 def get_args(args=None):
@@ -25,8 +26,8 @@ def get_args(args=None):
 	parser.add_argument("--mcdropout", type=float, default=0)
 	parser.add_argument("--load_checkpoint", type=Path, default=None)
 	parser.add_argument("--seed", type=int, default=42)
-	parser.add_argument("--wb", type=bool, default=False)
-	parser.add_argument("--eval_proba", type=bool, default=False)
+	parser.add_argument("--wb", type=str2bool, nargs='?', const=True, default=False)
+	parser.add_argument("--eval_proba", type=str2bool, nargs='?', const=True, default=False)
 	args = parser.parse_args(args)
 	return args
 	
