@@ -290,14 +290,16 @@ class SegmentationModel(pl.LightningModule):
 
         for metric in self.metrics:
             for j, th in enumerate(self.thresholds):
-                print("shape y:")
-                print(y_p[:, j, self.mask == 1])
-                print("shape prob:")
-                print(y_hat_prob[:, j, self.mask == 1])
-                self.log(
+                if metric.__name__ == "AUC" and 1 not in y_p[:, j, self.mask == 1]:
+                    self.log(
                     f"val/{metric.__name__} {th*self.case_study_max:.0f}",
-                    metric(y_p[:, j, self.mask == 1], y_hat_prob[:, j, self.mask == 1]),
+                    1
                 )
+                else:
+                    self.log(
+                        f"val/{metric.__name__} {th*self.case_study_max:.0f}",
+                        metric(y_p[:, j, self.mask == 1], y_hat_prob[:, j, self.mask == 1]),
+                    )
 
     def test_step(self, batch, batch_idx):
         x, y, ev_date = batch["x"], batch["y"], batch.get("ev_date")
