@@ -209,46 +209,47 @@ class SegmentationModel(pl.LightningModule):
                 self.hparams.finetune_type == "bin"
                 or self.hparams.finetune_type == "kde"
             ):
-                # sort to calculate bins
-                y_hat_prob_mask = y_hat_prob[:, :, self.mask == 1].flatten()
-                sorted_idx = torch.argsort(y_hat_prob_mask)  ########
-                targets_probs = y_hat_prob_mask[sorted_idx]
-                labels = y_p[:, :, self.mask == 1].flatten()
-                labels = labels[sorted_idx]
-                num_sample = len(labels)
-                # indices = torch.arange(num_sample).to(self.device)
-                # indices = indices[sorted_idx]
-                # flat_mask = self.mask.flatten()
-                # num_mask = len(flat_mask)*y_p.size(0)*y_p.size(1) #mask*n_sample*n_layer
-                # proposed_probs = torch.zeros(num_mask).to(self.device)
-                new_labels = torch.zeros(num_sample).to(self.device)
-                if self.hparams.finetune_type == "bin":
-                    for i in range(n_bins):
-                        left = int(i * num_sample / n_bins)
-                        right = int((i + 1) * num_sample / n_bins)
-                        new_labels[left:right] = torch.mean((labels[left:right]))
-                elif self.hparams.finetune_type == "kde":
-                    targets_probs_np = targets_probs.detach().cpu().numpy()
-                    labels = labels.detach().cpu().numpy()
-                    sigma = 0.1
-                    window = 500
-                    for i in range(num_sample):
-                        left = np.maximum(0, i - window)
-                        right = np.minimum(i + window, num_sample)
-                        new_labels[i] = self.get_new_prob(
-                            targets_probs_np[i],
-                            targets_probs_np[left:right],
-                            labels[left:right],
-                            scale=sigma,
-                        )
-                    # new_labels = torch.from_numpy(new_labels).to(self.device)
-                # j=0
-                # for i in range(num_mask):
-                # 	if(flat_mask[i%len(self.mask)] == 1):
-                # 		proposed_probs[int(indices[j])] = new_labels[j]
-                # 		j+=1
-                # probs_emp = torch.reshape(proposed_probs, (y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)))
-                loss_CAPE = self.BCE(targets_probs, new_labels)
+                for i in range(len(self.thresholds)):
+                    # sort to calculate bins
+                    y_hat_prob_mask = y_hat_prob[:, i, self.mask == 1].flatten()
+                    sorted_idx = torch.argsort(y_hat_prob_mask)  ########
+                    targets_probs = y_hat_prob_mask[sorted_idx]
+                    labels = y_p[:, i, self.mask == 1].flatten()
+                    labels = labels[sorted_idx]
+                    num_sample = len(labels)
+                    # indices = torch.arange(num_sample).to(self.device)
+                    # indices = indices[sorted_idx]
+                    # flat_mask = self.mask.flatten()
+                    # num_mask = len(flat_mask)*y_p.size(0)*y_p.size(1) #mask*n_sample*n_layer
+                    # proposed_probs = torch.zeros(num_mask).to(self.device)
+                    new_labels = torch.zeros(num_sample).to(self.device)
+                    if self.hparams.finetune_type == "bin":
+                        for i in range(n_bins):
+                            left = int(i * num_sample / n_bins)
+                            right = int((i + 1) * num_sample / n_bins)
+                            new_labels[left:right] = torch.mean((labels[left:right]))
+                    elif self.hparams.finetune_type == "kde":
+                        targets_probs_np = targets_probs.detach().cpu().numpy()
+                        labels = labels.detach().cpu().numpy()
+                        sigma = 0.1
+                        window = 500
+                        for i in range(num_sample):
+                            left = np.maximum(0, i - window)
+                            right = np.minimum(i + window, num_sample)
+                            new_labels[i] = self.get_new_prob(
+                                targets_probs_np[i],
+                                targets_probs_np[left:right],
+                                labels[left:right],
+                                scale=sigma,
+                            )
+                        # new_labels = torch.from_numpy(new_labels).to(self.device)
+                    # j=0
+                    # for i in range(num_mask):
+                    # 	if(flat_mask[i%len(self.mask)] == 1):
+                    # 		proposed_probs[int(indices[j])] = new_labels[j]
+                    # 		j+=1
+                    # probs_emp = torch.reshape(proposed_probs, (y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)))
+                    loss_CAPE = loss_CAPE + self.BCE(targets_probs, new_labels)
             elif self.hparams.finetune_type == "mine":
                 probs_emp = torch.zeros(
                     [y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)]
