@@ -344,7 +344,7 @@ class SegmentationModel(pl.LightningModule):
                 )
 
             brier_scores[lv] = (
-                ((y_hat_prob[:, j] - y.cuda().gt(lv).float()) ** 2).mean().item()
+                ((y_hat_prob[:, j] - y.to(self.device).gt(lv).float()) ** 2).mean().item()
             )
             brier_scores[lv] = (
                 brier_scores[lv] * (96 * 128) / 5247
@@ -451,7 +451,7 @@ class SegmentationModel(pl.LightningModule):
                 for batch in self.test_dataloader():
                     x, y, ev_date = batch["x"], batch["y"], batch.get("ev_date")
                     x = x.to("cuda")
-                    output = self.cnn(x) * self.mask.cuda()
+                    output = self.cnn(x) * self.mask.to(self.device)
                     predictions.append(output)
                 predictions = torch.cat(
                     predictions, dim=0
@@ -470,7 +470,7 @@ class SegmentationModel(pl.LightningModule):
         variance = dropout_predictions.var(dim=0)
 
         # Calculating variance over error
-        error = torch.abs(mean - y_all.cuda())
+        error = torch.abs(mean - y_all.to(self.device))
         error = error.flatten().cpu().numpy() * self.case_study_max
         variance = variance.flatten().cpu().numpy()
 
@@ -522,7 +522,7 @@ class SegmentationModel(pl.LightningModule):
         # mutual_info = entropy - torch.mean(torch.sum(-dropout_predictions * torch.log(dropout_predictions + 1e-6),
         # 									dim=-1), dim=0)
 
-        y_all = y_all.cuda()
+        y_all = y_all.to(self.device)
         loss = self.loss(mean, y_all)
         # print(f"y_all shape {y_all.shape}")
         # print(f"mean shape {mean.shape}")
@@ -574,8 +574,8 @@ class SegmentationModel(pl.LightningModule):
             for i in range(forward_passes):
                 predictions = []
                 for batch in self.test_dataloader():
-                    x = batch["x"].cuda()
-                    output = self.cnn(x) * self.mask.cuda()
+                    x = batch["x"].to(self.device)
+                    output = self.cnn(x) * self.mask.to(self.device)
                     predictions.append(output)
                 predictions = torch.cat(predictions, dim=0)
                 predictions = predictions * self.case_study_max
@@ -603,7 +603,7 @@ class SegmentationModel(pl.LightningModule):
                 )
 
             brier_scores[lv] = (
-                ((probabilities[lv] - y_all.cuda().gt(lv).float()) ** 2).mean().item()
+                ((probabilities[lv] - y_all.to(self.device).gt(lv).float()) ** 2).mean().item()
             )
             brier_scores[lv] = (
                 brier_scores[lv] * (96 * 128) / 5247
