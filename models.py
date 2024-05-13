@@ -316,7 +316,7 @@ class SegmentationModel(pl.LightningModule):
             for j, th in enumerate(self.thresholds):
                 self.log(
                     f"test/{metric.__name__} {th*self.case_study_max}",
-                    metric(y_p[:, j], y_hat[:, j], self),
+                    metric(y_p[:, j], y_hat_prob[:, j], self),
                 )
 
         # Calculating Brier score
