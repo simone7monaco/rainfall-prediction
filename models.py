@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 from sklearn.calibration import calibration_curve
+from sklearn.metrics import roc_auc_score
 import scipy
 
 import torch
@@ -64,7 +65,7 @@ class SegmentationModel(pl.LightningModule):
             100 / self.case_study_max,
             150 / self.case_study_max,
         ]
-        self.metrics = [ECE, KL]
+        self.metrics = [ECE, KL, AUC]
         self.test_predictions = []
 
         self.train_losses = []
@@ -407,6 +408,7 @@ def ECE(gt, probs, self):
     probs = probs[:, self.mask.cpu() == 1].flatten()
     y_true_gt = gt[:, self.mask.cpu() == 1].flatten()
     print(probs[probs>1])
+    print(probs[probs<0])
     x_, y_ = calibration_curve(y_true_gt, probs, n_bins=10, strategy="quantile")
     ece = np.mean(np.abs(x_ - y_))
     return ece
@@ -423,3 +425,6 @@ def KL(gt, probs, self):
         + (1 - probs) * torch.log((1 - y_true_gt + eps) / (1 - probs + eps))
     ).mean()
     return kl_prob_gt
+
+def AUC(gt, probs, self):
+    return roc_auc_score(y_true=gt.cpu(), y_score=probs.cpu())
