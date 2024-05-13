@@ -415,11 +415,11 @@ def ECE(gt, probs, self):
 
 
 def KL(gt, probs, self):
-    eps = torch.Tensor([1e-10]).cpu()
+    eps = torch.Tensor([1e-10])
     gt = gt.squeeze()
     probs = probs.squeeze()
-    probs = probs[:, self.mask.cpu() == 1].flatten().cpu()
-    y_true_gt = gt[:, self.mask.cpu() == 1].flatten().cpu()
+    probs = probs[:, self.mask == 1].flatten()
+    y_true_gt = gt[:, self.mask == 1].flatten()
     kl_prob_gt = -(
         probs * torch.log((y_true_gt + eps) / (probs + eps))
         + (1 - probs) * torch.log((1 - y_true_gt + eps) / (1 - probs + eps))
