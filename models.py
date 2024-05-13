@@ -291,9 +291,9 @@ class SegmentationModel(pl.LightningModule):
         for metric in self.metrics:
             for j, th in enumerate(self.thresholds):
                 print("shape y:")
-                print(y_p[:, j, self.mask == 1].shape)
+                print(y_p[:, j, self.mask == 1])
                 print("shape prob:")
-                print(y_hat_prob[:, j, self.mask == 1].shape)
+                print(y_hat_prob[:, j, self.mask == 1])
                 self.log(
                     f"val/{metric.__name__} {th*self.case_study_max:.0f}",
                     metric(y_p[:, j, self.mask == 1], y_hat_prob[:, j, self.mask == 1]),
