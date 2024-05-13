@@ -407,8 +407,6 @@ def ECE(gt, probs, self):
     probs = probs.squeeze().cpu()
     probs = probs[:, self.mask.cpu() == 1].flatten()
     y_true_gt = gt[:, self.mask.cpu() == 1].flatten()
-    print(probs[probs>1])
-    print(probs[probs<0])
     x_, y_ = calibration_curve(y_true_gt, probs, n_bins=10, strategy="quantile")
     ece = np.mean(np.abs(x_ - y_))
     return ece
@@ -427,4 +425,4 @@ def KL(gt, probs, self):
     return kl_prob_gt
 
 def AUC(gt, probs, self):
-    return roc_auc_score(y_true=gt.cpu(), y_score=probs.cpu())
+    return roc_auc_score(y_true=gt.cpu().flatten(), y_score=probs.cpu().flatten())
