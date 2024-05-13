@@ -403,7 +403,7 @@ def KL(gt, probs):
 
 def AUC(gt, probs):
     #gt=gt.permute(0,2,3,1).reshape(gt.size(0)*gt.size(2)*gt.size(3),gt.size(1))
-    return roc_auc_score(y_true=gt.cpu(), y_score=probs.cpu())
+    return roc_auc_score(y_true=gt.flatten().cpu(), y_score=probs.flatten().cpu())
 
 def brierScore(gt, probs):
     return ((probs - gt) ** 2).mean()
