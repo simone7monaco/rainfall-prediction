@@ -315,7 +315,7 @@ class SegmentationModel(pl.LightningModule):
             for th in self.thresholds:
                 self.log(
                     f"test/{metric.__name__} {th*self.case_study_max}",
-                    metric(y_hat[:, :, self.mask == 1], y[:, :, self.mask == 1], th),
+                    metric(y_p[:, :, self.mask == 1], y_hat[:, :, self.mask == 1], self),
                 )
 
         # Calculating Brier score

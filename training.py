@@ -75,13 +75,13 @@ def main(args):
 
     if not args.load_checkpoint:
         early_stop = EarlyStopping(
-            monitor="val_loss", min_delta=0.00, patience=25, verbose=False, mode="min"
+            monitor="val/loss", min_delta=0.00, patience=25, verbose=False, mode="min"
         )
         model_checkpoint = ModelCheckpoint(
             output_path / f"split_{args.n_split}",
-            monitor="val_loss",
+            monitor="val/loss",
             mode="min",
-            filename="{epoch}-{val_loss:.2f}",
+            filename="{epoch}-{val/loss:.2f}",
         )
 
         model = SegmentationModel(**args.__dict__)
