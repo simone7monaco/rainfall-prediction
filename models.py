@@ -289,11 +289,6 @@ class SegmentationModel(pl.LightningModule):
         self.log("val/loss", loss, prog_bar=True)
 
         for metric in self.metrics:
-            self.log(
-                f"val/{metric.__name__}",
-                metric(y_p[:, :, self.mask == 1], y_hat_prob[:, :, self.mask == 1]),
-            )
-        for metric in self.metrics:
             for j, th in enumerate(self.thresholds):
                 self.log(
                     f"val/{metric.__name__} {th*self.case_study_max:.0f}",
