@@ -33,7 +33,7 @@ class SegmentationModel(pl.LightningModule):
         self.load_data()
         if self.hparams.network_model == "unet":
             self.cnn = UNet(
-                self.in_features, self.out_features, dropout=self.hparams.mcdropout
+                self.in_features, self.out_features, dropout=0
             )
         elif self.hparams.network_model == "vgunet":
             self.cnn = VGUNet(self.in_features, self.out_features, base_nc=64)
@@ -48,9 +48,7 @@ class SegmentationModel(pl.LightningModule):
             raise NotImplementedError(
                 f"Model {self.hparams.network_model} not implemented"
             )
-        self.loss = nn.MSELoss()
-        self.training_loss = nn.L1Loss()  # MSLELoss()
-        self.brierLoss = BrierLoss()
+        self.MSE = nn.MSELoss()
         self.sigmoid = nn.Sigmoid()
         self.BCEL = nn.BCEWithLogitsLoss()
         self.BCE = nn.BCELoss()
@@ -66,11 +64,8 @@ class SegmentationModel(pl.LightningModule):
             100 / self.case_study_max,
             150 / self.case_study_max,
         ]
-        self.metrics = []  # [freqbias, ets, csi]
+        self.metrics = []
         self.test_predictions = []
-
-        self.sigma = 0.1
-        self.window = 500
 
         self.train_losses = []
         self.val_losses = []
@@ -205,10 +200,10 @@ class SegmentationModel(pl.LightningModule):
         for i in range(len(self.thresholds)):
             y_p.append(y.gt(self.thresholds[i]).float())
         y_p = torch.cat(y_p, dim=1)
-        loss1 = 0
-        loss2 = 0
+        loss_CAPE = 0
+        loss_BCE = 0
         if self.hparams.fine_tune == 1: # and self.current_epoch %2==0:
-            n_bins = 100
+            n_bins = 10
             if (
                 self.hparams.finetune_type == "bin"
                 or self.hparams.finetune_type == "kde"
@@ -234,10 +229,11 @@ class SegmentationModel(pl.LightningModule):
                 elif self.hparams.finetune_type == "kde":
                     targets_probs_np = targets_probs.detach().cpu().numpy()
                     labels = labels.detach().cpu().numpy()
-                    sigma = self.sigma
+                    sigma = 0.1
+                    window = 500
                     for i in range(num_sample):
-                        left = np.maximum(0, i - self.window)
-                        right = np.minimum(i + self.window, num_sample)
+                        left = np.maximum(0, i - window)
+                        right = np.minimum(i + window, num_sample)
                         new_labels[i] = self.get_new_prob(
                             targets_probs_np[i],
                             targets_probs_np[left:right],
@@ -251,7 +247,7 @@ class SegmentationModel(pl.LightningModule):
                 # 		proposed_probs[int(indices[j])] = new_labels[j]
                 # 		j+=1
                 # probs_emp = torch.reshape(proposed_probs, (y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)))
-                loss1 = self.BCE(targets_probs, new_labels)
+                loss_CAPE = self.BCE(targets_probs, new_labels)
             elif self.hparams.finetune_type == "mine":
                 probs_emp = torch.zeros(
                     [y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)]
@@ -264,17 +260,19 @@ class SegmentationModel(pl.LightningModule):
                 for i in range(n_bins):
                     inx = torch.where(bins_index == i)
                     probs_emp[inx] = torch.mean(y_p[inx])
-                loss1 = self.BCEL(
+                loss_CAPE = self.BCEL(
                     y_hat[:, :, self.mask == 1], probs_emp[:, :, self.mask == 1]
                 )
             else:
                 raise NotImplementedError
 
         #else:
-        loss2 = self.BCEL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
-        loss = loss1 + loss2
+        loss_BCE = self.BCEL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
+        loss = loss_CAPE + loss_BCE
         self.train_losses.append([self.current_epoch, loss.item()])
-        self.log("train_loss", loss, prog_bar=True)
+        self.log("train/loss", loss, prog_bar=True)
+        self.log("train/BCE", loss_BCE)
+        self.log("train/CAPE", loss_CAPE)
         
         return loss
 
@@ -286,20 +284,19 @@ class SegmentationModel(pl.LightningModule):
             y_p.append(y.gt(self.thresholds[i]).float())
         y_p = torch.cat(y_p, dim=1)
         loss = self.BCEL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
-        MSEp = self.loss(y_hat_prob[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
+        brier = self.MSE(y_hat_prob[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
         self.val_losses.append([self.current_epoch, loss.item()])
-        self.log("val_loss", loss, prog_bar=True)
-        self.log("MSEp_loss", MSEp, prog_bar=True)
+        self.log("val/loss", loss, prog_bar=True)
+        self.log("val/brierScore", brier, prog_bar=True)
 
-        if self.current_epoch % 10 == 0:
-            for metric in self.metrics:
-                for th in self.thresholds:
-                    self.log(
-                        f"val_{metric.__name__}_{th*self.case_study_max}",
-                        metric(
-                            y_hat[:, :, self.mask == 1], y[:, :, self.mask == 1], th
-                        ),
-                    )
+        for metric in self.metrics:
+            for th in self.thresholds:
+                self.log(
+                    f"val_{metric.__name__}_{th*self.case_study_max}",
+                    metric(
+                        y_hat[:, :, self.mask == 1], y[:, :, self.mask == 1], th
+                    ),
+                )
 
     def test_step(self, batch, batch_idx):
         x, y, ev_date = batch["x"], batch["y"], batch.get("ev_date")
@@ -309,39 +306,25 @@ class SegmentationModel(pl.LightningModule):
         for i in range(len(self.thresholds)):
             y_p.append(y.gt(self.thresholds[i]).float())
         y_p = torch.cat(y_p, dim=1)
-        MSEp = self.loss(y_hat_prob[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
-        self.log("test_MSEp", MSEp, prog_bar=True)
+        brier = self.MSE(y_hat_prob[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
+        self.log("test/brierScore", brier)
 
         self.test_predictions.append(y_hat)
-
-        for channel in range(x.shape[1]):
-            loss_ch = self.loss(x[:, channel : channel + 1, :, :], y)
-            self.log(f"rmse NWP {channel}", self.rmse(loss_ch))
 
         for metric in self.metrics:
             for th in self.thresholds:
                 self.log(
-                    f"test_{metric.__name__}_{th*self.case_study_max}",
+                    f"test/{metric.__name__} {th*self.case_study_max}",
                     metric(y_hat[:, :, self.mask == 1], y[:, :, self.mask == 1], th),
                 )
 
         # Calculating Brier score
-        save_dir = Path("proba")
         brier_scores = {}
         input_models_brier_score = {}
         lv_thresholds = [1, 5, 10, 20, 50, 100, 150]
         y = y * self.case_study_max
         x = x * self.case_study_max
         for j, lv in enumerate(lv_thresholds):
-            (save_dir / str(lv)).mkdir(exist_ok=True)
-            # save the probability results for each threshold under the logger directory / <threshold> / pred{ev_date}.csv
-
-            for i, ename in enumerate(ev_date):
-                # probabilities[lv] has shape (n_samples, C, H, W) to get the current image, we need to index the first dimension
-                # img = probabilities[lv][i].cpu().numpy()
-                pd.DataFrame(y_hat_prob[i][j].squeeze().cpu().numpy()).to_csv(
-                    save_dir / f"{lv}/pred{ename}.csv", index=False, header=False
-                )
 
             brier_scores[lv] = (
                 ((y_hat_prob[:, j] - y.to(self.device).gt(lv).float()) ** 2).mean().item()
@@ -362,40 +345,27 @@ class SegmentationModel(pl.LightningModule):
             print(f"ECE for threshold {lv} mm: {ece:.4f}")
             print(f"KL for threshold {lv} mm: {kl:.4f}\n")
             self.log(f"Brier score {lv} mm", brier_scores[lv])
-            self.log(f"ECE {lv} mm", ece)
-            self.log(f"KL {lv} mm", kl)
+            self.log(f"test/ECE {lv} mm", ece)
+            self.log(f"test/KL {lv} mm", kl)
 
-        sns.set_style("whitegrid")
+        # sns.set_style("whitegrid")
 
-        plt.figure()
-        plt.plot(
-            lv_thresholds,
-            [brier_scores[lv] for lv in lv_thresholds],
-            label="Brier score",
-        )
-        plt.plot(
-            lv_thresholds,
-            [input_models_brier_score[lv] for lv in lv_thresholds],
-            label="Input models Brier score",
-        )
-        plt.xlabel("Threshold (mm)")
-        plt.ylabel("Brier score")
-        plt.legend()
-        plt.savefig("brier_scores.png")
+        # plt.figure()
+        # plt.plot(
+        #     lv_thresholds,
+        #     [brier_scores[lv] for lv in lv_thresholds],
+        #     label="Brier score",
+        # )
+        # plt.plot(
+        #     lv_thresholds,
+        #     [input_models_brier_score[lv] for lv in lv_thresholds],
+        #     label="Input models Brier score",
+        # )
+        # plt.xlabel("Threshold (mm)")
+        # plt.ylabel("Brier score")
+        # plt.legend()
+        # plt.savefig("brier_scores.png")
         # plt.savefig(Path(self.logger.log_dir)/"brier_scores.png")
-
-    # def on_train_end(self):
-    # 	import seaborn as sns
-    # 	import pandas as pd
-    # 	import matplotlib.pyplot as plt
-    # 	fig, ax = plt.subplots()
-    # 	train_losses = pd.DataFrame(self.train_losses, columns=['epoch', 'loss'])
-    # 	val_losses = pd.DataFrame(self.val_losses, columns=['epoch', 'loss'])
-    # 	sns.lineplot(data=train_losses, x='epoch', y='loss', label='train')
-    # 	sns.lineplot(data=val_losses, x='epoch', y='loss', label='valid')
-    # 	plt.legend()
-    # 	plt.yscale('log')
-    # 	fig.savefig(Path(self.logger.log_dir)/"losses.png")
 
     def log_images(self, features, masks, logits_, batch_idx):
         respath = Path(self.logger.log_dir) / "test_images"
@@ -429,275 +399,6 @@ class SegmentationModel(pl.LightningModule):
                 # multiple of "trainer.check_val_every_n_epoch".
             },
         }
-
-    def get_monte_carlo_predictions(self, forward_passes=20, save_dir=None):
-        """Function to get the monte-carlo samples and uncertainty estimates
-        through multiple forward passes
-
-        Parameters
-        ----------
-        data_loader : object
-                data loader object from the data loader module
-        forward_passes : int
-                number of monte-carlo samples/forward passes
-        """
-        assert hasattr(self.cnn, "eval_dp"), "Model does not have dropout layers"
-
-        dropout_predictions = []
-        for i in range(forward_passes):
-            predictions = []
-            self.cnn.eval_dp()
-            with torch.no_grad():
-                for batch in self.test_dataloader():
-                    x, y, ev_date = batch["x"], batch["y"], batch.get("ev_date")
-                    x = x.to("cuda")
-                    output = self.cnn(x) * self.mask.to(self.device)
-                    predictions.append(output)
-                predictions = torch.cat(
-                    predictions, dim=0
-                )  # shape (n_samples, C, H, W)
-            dropout_predictions.append(predictions)
-        dropout_predictions = torch.stack(
-            dropout_predictions, dim=0
-        )  # shape (n_forward_passes, n_samples, C, H, W)
-        y_all = (
-            torch.cat([batch["y"] for batch in self.test_dataloader()], dim=0)
-            * self.mask.cpu()
-        )
-
-        # Calculating stats across multiple MCD forward passes
-        mean = dropout_predictions.mean(dim=0)
-        variance = dropout_predictions.var(dim=0)
-
-        # Calculating variance over error
-        error = torch.abs(mean - y_all.to(self.device))
-        error = error.flatten().cpu().numpy() * self.case_study_max
-        variance = variance.flatten().cpu().numpy()
-
-        sns.set_style("whitegrid")
-
-        if save_dir is None:
-            save_dir = Path(self.logger.log_dir)
-        save_dir.mkdir(exist_ok=True)
-
-        ind = np.where(error > 0)
-        var_mean = []
-        err_mean = []
-        for i, bin in enumerate(np.linspace(0, 400, 201)):
-            indx = np.where((error > bin) & (error <= bin + (400 / 200)))
-            var_mean.append(variance[indx].mean())
-            err_mean.append(error[indx].mean())
-
-        plt.figure()
-        plt.scatter(err_mean, var_mean)
-        plt.xlabel("Prediction error (mm)")
-        plt.ylabel("variance")
-        plt.savefig(
-            save_dir
-            / f"error_variance_seed_{self.hparams.seed}_split_{self.hparams.n_split}.png"
-        )
-
-        plt.figure()
-        plt.hist(error[ind], bins=np.linspace(0, 20, 100))
-        plt.xlabel("Prediction error (mm)")
-        plt.ylabel("# pixel")
-        plt.savefig(
-            save_dir
-            / f"pred_error_seed_{self.hparams.seed}_split_{self.hparams.n_split}.png"
-        )
-
-        plt.figure()
-        plt.hist(error[ind], bins=100, log=True)
-        plt.xlabel("Prediction error (mm)")
-        plt.ylabel("log(# pixel)")
-        plt.savefig(
-            save_dir
-            / f"pred_error_log_seed_{self.hparams.seed}_split_{self.hparams.n_split}.png"
-        )
-
-        # Calculating entropy across multiple MCD forward passes
-        # entropy = -torch.sum(mean * torch.log(mean + 1e-6), axis=-1)
-
-        # # Calculating mutual information across multiple MCD forward passes
-        # mutual_info = entropy - torch.mean(torch.sum(-dropout_predictions * torch.log(dropout_predictions + 1e-6),
-        # 									dim=-1), dim=0)
-
-        y_all = y_all.to(self.device)
-        loss = self.loss(mean, y_all)
-        # print(f"y_all shape {y_all.shape}")
-        # print(f"mean shape {mean.shape}")
-
-        print(f"MCD RMSE", self.rmse(loss))
-        print(f"MCD variance", variance.mean().item())
-        print(f"forward pass ", forward_passes)
-        wandb.log({"test rmse": self.rmse(loss)})
-        wandb.log({"test variance": variance.mean().item()})
-        # print(f"MCD entropy", entropy.mean().item())
-        # print(f"MCD mutual info", mutual_info.mean().item())
-
-        for metric in self.metrics:
-            for th in self.thresholds:
-                met = metric(
-                    mean[:, :, self.mask == 1], y_all[:, :, self.mask == 1], th
-                ).item()
-                wandb.log({f"MCD_{metric.__name__}_{th*self.case_study_max}": met})
-                print(f"MCD_{metric.__name__}_{th*self.case_study_max}: {met:.4f}")
-
-    def eval_proba(
-        self,
-        lv_thresholds=[1, 5, 10, 20, 50, 100, 150],
-        forward_passes=20,
-        save_dir=None,
-    ):
-        """
-        Perform an evaluation loop for the probabilistic forecasts. The function have to store, for each threshold and each image,
-        the probability for the models (the MCD samples) to be above the threshold. The function will then compute the Brier score
-        """
-
-        assert hasattr(self.cnn, "eval_dp"), "Model does not have dropout layers"
-
-        if save_dir is None:
-            save_dir = Path(self.logger.log_dir)
-        save_dir.mkdir(exist_ok=True)
-
-        probabilities = {lv: [] for lv in lv_thresholds}
-        y_all = (
-            torch.cat([batch["y"] for batch in self.test_dataloader()], dim=0)
-            * self.case_study_max
-        )
-        enames_all = torch.cat(
-            [batch["ev_date"] for batch in self.test_dataloader()], dim=0
-        )
-
-        self.cnn.eval_dp()
-        with torch.no_grad():
-            for i in range(forward_passes):
-                predictions = []
-                for batch in self.test_dataloader():
-                    x = batch["x"].to(self.device)
-                    output = self.cnn(x) * self.mask.to(self.device)
-                    predictions.append(output)
-                predictions = torch.cat(predictions, dim=0)
-                predictions = predictions * self.case_study_max
-                for lv in lv_thresholds:
-                    probabilities[lv].append((predictions > lv).float())
-            for lv in lv_thresholds:
-                probabilities[lv] = torch.stack(probabilities[lv], dim=0).mean(dim=0)
-
-        # Calculating Brier score
-        brier_scores = {}
-        input_models_brier_score = {}
-        x_all = (
-            torch.cat([batch["x"] for batch in self.test_dataloader()], dim=0)
-            * self.case_study_max
-        )
-        for lv in lv_thresholds:
-            (save_dir / str(lv)).mkdir(exist_ok=True)
-            # save the probability results for each threshold under the logger directory / <threshold> / pred{ev_date}.csv
-
-            for i, ename in enumerate(enames_all):
-                # probabilities[lv] has shape (n_samples, C, H, W) to get the current image, we need to index the first dimension
-                # img = probabilities[lv][i].cpu().numpy()
-                pd.DataFrame(probabilities[lv][i].squeeze().cpu().numpy()).to_csv(
-                    save_dir / f"{lv}/pred{ename}.csv", index=False, header=False
-                )
-
-            brier_scores[lv] = (
-                ((probabilities[lv] - y_all.to(self.device).gt(lv).float()) ** 2).mean().item()
-            )
-            brier_scores[lv] = (
-                brier_scores[lv] * (96 * 128) / 5247
-            )  # normalization to mask==1 only
-            prob_input_models = (x_all > lv).float()
-            # print(f"y_all shape {y_all.shape}")
-            # print(f"input_model_all shape {x_all.shape}")
-            # print(f"probabilities shape {probabilities[lv].shape}")
-            # print(f"prob_input_models shape {prob_input_models.shape}")
-            # print(f"diff shape {(prob_input_models - y_all.gt(lv).float()).shape}")
-
-            ece = ECE(gt=y_all.gt(lv).float(), probs=probabilities[lv], self=self)
-            kl = KL(gt=y_all.gt(lv).float(), probs=probabilities[lv], self=self)
-            input_models_brier_score[lv] = (
-                ((prob_input_models - y_all.gt(lv).float()) ** 2).mean().item()
-            )
-
-            print(f"Brier score for threshold {lv} mm: {brier_scores[lv]:.4f}")
-            print(f">Brier score for input models: {input_models_brier_score[lv]:.4f}")
-            print(f"ECE for threshold {lv} mm: {ece:.4f}")
-            print(f"KL for threshold {lv} mm: {kl:.4f}\n")
-            wandb.log({f"Brier score {lv} mm": brier_scores[lv]})
-
-        sns.set_style("whitegrid")
-
-        plt.figure()
-        plt.plot(
-            lv_thresholds,
-            [brier_scores[lv] for lv in lv_thresholds],
-            label="Brier score",
-        )
-        plt.plot(
-            lv_thresholds,
-            [input_models_brier_score[lv] for lv in lv_thresholds],
-            label="Input models Brier score",
-        )
-        plt.xlabel("Threshold (mm)")
-        plt.ylabel("Brier score")
-        plt.legend()
-        plt.savefig("brier_scores.png")
-        # plt.savefig(Path(self.logger.log_dir)/"brier_scores.png")
-
-
-class BrierLoss(nn.Module):
-    def __init__(self):
-        super(BrierLoss, self).__init__()
-
-        self.case_study_max = 483.717752
-        self.lv_thresholds = [
-            1 / self.case_study_max,
-            5 / self.case_study_max,
-            10 / self.case_study_max,
-            20 / self.case_study_max,
-            50 / self.case_study_max,
-            100 / self.case_study_max,
-            150 / self.case_study_max,
-        ]
-        # self.lv_thresholds=[50/self.case_study_max]
-
-    def forward(self, predictions, targets):
-        brier_score = torch.tensor(0.0, requires_grad=True)
-        for lv in self.lv_thresholds:
-            brier_score = (
-                brier_score
-                + ((predictions[lv].float() - targets.gt(lv).float()) ** 2).mean()
-            )
-        return brier_score
-
-
-def freqbias(perc, veri, threshh):
-    hits = torch.sum((veri >= threshh) * (perc >= threshh))
-    falsealarms = torch.sum((veri < threshh) * (perc >= threshh))
-    misses = torch.sum((veri >= threshh) * (perc < threshh))
-    return (hits + falsealarms) / (hits + misses)
-
-
-def ets(perc, veri, threshh):
-    hits = torch.sum((veri >= threshh) * (perc >= threshh))
-    falsealarms = torch.sum((veri < threshh) * (perc >= threshh))
-    misses = torch.sum((veri >= threshh) * (perc < threshh))
-    correctnegatives = torch.sum((veri < threshh) * (perc < threshh))
-    hitsrandom = (
-        (hits + misses)
-        * (hits + falsealarms)
-        / (hits + falsealarms + misses + correctnegatives)
-    )
-    return (hits - hitsrandom) / (hits + misses + falsealarms - hitsrandom)
-
-
-def csi(perc, veri, threshh):
-    hits = torch.sum((veri >= threshh) * (perc >= threshh))
-    falsealarms = torch.sum((veri < threshh) * (perc >= threshh))
-    misses = torch.sum((veri >= threshh) * (perc < threshh))
-    return hits / (hits + falsealarms + misses)
 
 
 def ECE(gt, probs, self):
