@@ -250,6 +250,7 @@ class SegmentationModel(pl.LightningModule):
                     # 		j+=1
                     # probs_emp = torch.reshape(proposed_probs, (y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)))
                     loss_CAPE = loss_CAPE + self.BCE(targets_probs, new_labels)
+                loss_CAPE = loss_CAPE /7
             elif self.hparams.finetune_type == "mine":
                 probs_emp = torch.zeros(
                     [y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)]
