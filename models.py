@@ -65,7 +65,7 @@ class SegmentationModel(pl.LightningModule):
             100 / self.case_study_max,
             150 / self.case_study_max,
         ]
-        self.metrics = [ECE, KL, AUC]
+        self.metrics = [ECE, KL, AUC, brierScore]
         self.test_predictions = []
 
         self.train_losses = []
@@ -416,3 +416,6 @@ def KL(gt, probs):
 
 def AUC(gt, probs):
     return roc_auc_score(y_true=gt.cpu().flatten(), y_score=probs.cpu().flatten())
+
+def brierScore(gt, probs):
+    return ((probs - gt) ** 2).mean()
