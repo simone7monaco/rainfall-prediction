@@ -64,7 +64,7 @@ class SegmentationModel(pl.LightningModule):
             100 / self.case_study_max,
             150 / self.case_study_max,
         ]
-        self.metrics = []
+        self.metrics = [ECE, KL]
         self.test_predictions = []
 
         self.train_losses = []
@@ -289,14 +289,14 @@ class SegmentationModel(pl.LightningModule):
         self.log("val/loss", loss, prog_bar=True)
         self.log("val/brierScore", brier, prog_bar=True)
 
-        for metric in self.metrics:
-            for th in self.thresholds:
-                self.log(
-                    f"val_{metric.__name__}_{th*self.case_study_max}",
-                    metric(
-                        y_hat[:, :, self.mask == 1], y[:, :, self.mask == 1], th
-                    ),
-                )
+        # for metric in self.metrics:
+        #     for th in self.thresholds:
+        #         self.log(
+        #             f"val_{metric.__name__}_{th*self.case_study_max}",
+        #             metric(
+        #                 y_hat[:, :, self.mask == 1], y[:, :, self.mask == 1], th
+        #             ),
+        #         )
 
     def test_step(self, batch, batch_idx):
         x, y, ev_date = batch["x"], batch["y"], batch.get("ev_date")
