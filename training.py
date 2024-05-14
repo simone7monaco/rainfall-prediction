@@ -38,7 +38,7 @@ def get_args(args=None):
     parser.add_argument("--forward_passes", type=int, default=1)
     parser.add_argument("--code_version", type=int, default=5)
     parser.add_argument("--fine_tune", type=int, default=1)
-    parser.add_argument("--epochs_fn", "-f", type=int, default=80)
+    parser.add_argument("--epochs_fn", "-f", type=int, default=20)
     parser.add_argument(
         "--finetune_type", type=str, default="bin", choices=["mine", "bin", "kde"]
     )
@@ -90,7 +90,7 @@ def main(args):
             max_epochs=args.epochs,
             callbacks=[model_checkpoint, early_stop],
             log_every_n_steps=1,
-            logger=logger,  # default is TensorBoard
+            #logger=logger,  # default is TensorBoard
         )
         trainer.fit(model)
 
