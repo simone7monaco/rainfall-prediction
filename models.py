@@ -396,7 +396,7 @@ def ECE(gt, probs):
 
 
 def KL(gt, probs):
-    eps = torch.Tensor([1e-10])
+    eps = torch.Tensor([1e-10]).cuda()
     y_true_gt = gt.squeeze().flatten()
     probs = probs.squeeze().flatten()
     kl_prob_gt = -(
