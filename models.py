@@ -285,7 +285,7 @@ class SegmentationModel(pl.LightningModule):
         y_p = []
         for i in range(len(self.thresholds)):
             y_p.append(y.gt(self.thresholds[i]).float())
-        y_p = torch.cat(y_p, dim=1)
+        y_p = torch.cat(y_p, dim=1).to(self.device)
         loss = self.BCEL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
         self.val_losses.append([self.current_epoch, loss.item()])
         self.log("val/loss", loss, prog_bar=True)
