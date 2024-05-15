@@ -102,9 +102,9 @@ def main(args):
     if fine_tune == 1:
         model_checkpoint = ModelCheckpoint(
             output_path / f"split_{args.n_split}",
-            monitor="val/ECE",
+            monitor="val/loss",
             mode="min",
-            filename="{epoch}-{val/ECE:.4f}",
+            filename="{epoch}-{val/loss:.4f}",
         )
         trainer = pl.Trainer(
             accelerator="gpu" if cuda.is_available() else "cpu",
