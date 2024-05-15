@@ -303,7 +303,7 @@ class SegmentationModel(pl.LightningModule):
                         y_p[:, j, self.mask == 1], y_hat_prob[:, j, self.mask == 1]
                     )
                 metrics[metric.__name__] = metrics[metric.__name__] + met
-                self.log(f"val/{metric.__name__} {th*self.case_study_max:.0f}", met)
+                self.log(f"val_metric/{metric.__name__} {th*self.case_study_max:.0f}", met)
 
         for metric in self.metrics:  # print mean for metrics
             met = metrics[metric.__name__] / len(self.thresholds)
@@ -335,7 +335,7 @@ class SegmentationModel(pl.LightningModule):
                         y_p[:, j, self.mask == 1], y_hat_prob[:, j, self.mask == 1]
                     )
                 metrics[metric.__name__] = metrics[metric.__name__] + met
-                self.log(f"test/{metric.__name__} {th*self.case_study_max:.0f}", met)
+                self.log(f"test_metric/{metric.__name__} {th*self.case_study_max:.0f}", met)
 
         for metric in self.metrics:  # print mean for metrics
             met = metrics[metric.__name__] / len(self.thresholds)

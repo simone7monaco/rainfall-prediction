@@ -110,7 +110,7 @@ def main(args):
     if fine_tune == 1:
         model_checkpoint = ModelCheckpoint(
             output_path / f"split_{args.n_split}",
-            monitor="train/loss",
+            monitor="val/loss",
             mode="min",
             filename="{epoch}-{train/loss:.2f}",
         )
