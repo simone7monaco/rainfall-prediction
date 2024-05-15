@@ -55,15 +55,19 @@ class SegmentationModel(pl.LightningModule):
         # self.loss = lambda y_hat, y: F.mse_loss(y_hat * self.mask, y * self.mask)
 
         self.rmse = lambda loss: (loss * (self.case_study_max**2)).sqrt().item()
-        self.thresholds = [
-            1 / self.case_study_max,
+        thresh = [
             5 / self.case_study_max,
             10 / self.case_study_max,
             20 / self.case_study_max,
             50 / self.case_study_max,
             100 / self.case_study_max,
             150 / self.case_study_max,
+            1 / self.case_study_max,
         ]
+        self.thresholds = []
+        for i in range(self.hparams.n_thresh):
+            self.thresholds.append=thresh[i]
+            
         self.metrics = [ECE, KL, AUC, brierScore]
         self.test_predictions = []
 
@@ -134,7 +138,7 @@ class SegmentationModel(pl.LightningModule):
         )  # This makes sure self.mask is on the same device as the model
 
         self.in_features = in_features
-        self.out_features = 7  # out_features
+        self.out_features = len(self.thresholds)  # out_features
 
     def train_dataloader(self):
         if isinstance(self.cnn, ExtraUNet):
@@ -249,7 +253,7 @@ class SegmentationModel(pl.LightningModule):
                     # 		j+=1
                     # probs_emp = torch.reshape(proposed_probs, (y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)))
                     loss_CAPE = loss_CAPE + self.BCE(targets_probs, new_labels)
-                loss_CAPE = loss_CAPE / 7
+                loss_CAPE = loss_CAPE / len(self.thresholds)
             elif self.hparams.finetune_type == "mine":
                 probs_emp = torch.zeros(
                     [y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)]
