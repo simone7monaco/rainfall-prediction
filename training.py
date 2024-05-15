@@ -1,5 +1,5 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 import argparse
 from pathlib import Path
@@ -17,7 +17,7 @@ from utils import str2bool
 def get_args(args=None):
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--case_study", "-c", type=str, default="24h_10mmMAX_OI", choices=['24h_10mmMAX_OI', '24h_10mmMAX_radar'])
-	parser.add_argument("--network_model", "-m", type=str, default="unet", choices=['unet', 'sde_unet', 'ensemble_unet'])
+	parser.add_argument("--network_model", "-m", type=str, default="unet", choices=['unet', 'sde_unet', 'ensemble_unet', 'mcd_unet'])
 	parser.add_argument("--batch_size", type=int, default=32)
 	# parser.add_argument("--split_idx", type=str, default="701515")
 	parser.add_argument("--n_split", type=int, default=8)
@@ -47,6 +47,8 @@ def main(args):
 	output_path /= f'{args.network_model}'
 	
 	args.input_path = input_path
+	if args.network_model == 'mcd_unet':
+		args.mc_dropout = .2
     
 	# logger = CSVLogger(output_path, name=args.network_model)
 
@@ -54,7 +56,7 @@ def main(args):
 		early_stop = EarlyStopping(monitor="val/loss", min_delta=0.00, patience=10, verbose=False, mode="min")
 		model_checkpoint = ModelCheckpoint(output_path / f"split_{args.n_split}", monitor='val/loss', mode='min', filename='{epoch}-{val_rmse:.2f}')
 		
-		if args.network_model == 'unet':
+		if args.network_model in ['unet', 'mcd_unet']:
 			from base_segmodel import _SegmentationModel as SegmentationModel
 		elif args.network_model == 'sde_unet':
 			from sde_segmodel import SegmentationModel

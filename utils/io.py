@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Literal, AnyStr, List
 
 import numpy as np
@@ -20,8 +21,10 @@ def get_dates(
     return pd.read_csv(file_path, header=None).iloc[:, 0].to_numpy()
 
 
-def get_model(topdir: str, model_name: str, date: str, case_study_max: float) -> np.ndarray:
-    file_path = os.path.join(topdir, "models", f"{model_name}_{date}_0024_regrid.csv")
+def get_model(topdir: Path, model_name: str, date: str, case_study_max: float) -> np.ndarray:
+    file_path = topdir/"models"/f"{model_name}_{date}_0024_regrid.csv"
+    if not file_path.exists():
+        file_path = topdir
     assert os.path.exists(file_path), f"File {file_path} does not exist"
     model_data = pd.read_csv(file_path, sep=";", header=None).to_numpy()
     return model_data / case_study_max
@@ -52,20 +55,21 @@ def get_obs(topdir: str, date: str, case_study_max: float) -> np.ndarray:
     elif len(file_path) == 1:
         file_path = file_path[0]
     else:
-        raise FileNotFoundError(f"File '{case_study}*{date}*.csv' does not exist")
+        file_path = (file_path.parents[1]/"data_extremeEvents")
+        if not file_path.exists():
+            raise FileNotFoundError(f"File '{case_study}*{date}*.csv' does not exist")
     obs_data = pd.read_csv(file_path, sep=";", header=None).to_numpy()
     return obs_data / case_study_max
 
 
 def load_data(
-    topdir: str,
+    topdir: Path,
     dates: np.ndarray,
     case_study_max: float,
     indices: np.ndarray,
     indices_zero: np.ndarray,
     available_models: list[str],
 ) -> tuple[np.ndarray, np.ndarray]:
-    from matplotlib import pyplot as plt  # type: ignore
     models_data = []
     obs_data = []
     for date in dates:

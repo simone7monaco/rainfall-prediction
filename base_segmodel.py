@@ -1,12 +1,13 @@
 from pathlib import Path
 from utils import io
 from PIL import Image
+import numpy as np
 import pandas as pd
 
 import torch
 import torch.nn.functional as F
 
-torch.set_float32_matmul_precision('high')
+torch.set_float32_matmul_precision('medium')
 NUM_WORKERS = 0
 
 from torch.utils.data import DataLoader
@@ -43,6 +44,11 @@ class _SegmentationModel(pl.LightningModule):
 			self.hparams.input_path, n_split=self.hparams.n_split, case_study=self.hparams.case_study, ispadded=True,
 			seed=self.hparams.seed
 		)
+
+		# Removing extreme events from training dates
+		extreme_events = pd.concat([pd.read_csv(exev, header=None) for exev in self.hparams.input_path.glob('*extremeEvents.csv')])[0].values
+		train_dates = np.array([date for date in train_dates if date not in extreme_events])
+
 		self.x_train, self.y_train, in_features, out_features = io.load_data(self.hparams.input_path, train_dates, case_study_max, indices_one, indices_zero, available_models)
 		self.x_val, self.y_val, in_features, out_features = io.load_data(self.hparams.input_path, val_dates, case_study_max, indices_one, indices_zero, available_models)
 		self.x_test, self.y_test, in_features, out_features = io.load_data(self.hparams.input_path, test_dates, case_study_max, indices_one, indices_zero, available_models)
@@ -105,9 +111,8 @@ class _SegmentationModel(pl.LightningModule):
 			y_hat = self.forward(x, idx)
 		loss = self.loss(y_hat, y)
 		self.log("test/rmse", self.denorm_rmse(loss))
-		# self.log_images(x, y, y_hat, idx)
-
-		self.test_predictions.append(y_hat)
+		self.log_images(x, y, y_hat, idx)
+		# self.test_predictions.append(y_hat)
 
 		for channel in range(x.shape[1]):
 			loss_ch = self.loss(x[:, channel:channel+1, :, :], y)
