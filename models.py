@@ -33,9 +33,7 @@ class SegmentationModel(pl.LightningModule):
 
         self.load_data()
         if self.hparams.network_model == "unet":
-            self.cnn = UNet(
-                self.in_features, self.out_features, dropout=0
-            )
+            self.cnn = UNet(self.in_features, self.out_features, dropout=0)
         elif self.hparams.network_model == "vgunet":
             self.cnn = VGUNet(self.in_features, self.out_features, base_nc=64)
         elif self.hparams.network_model.startswith("extra"):
@@ -203,7 +201,7 @@ class SegmentationModel(pl.LightningModule):
         y_p = torch.cat(y_p, dim=1)
         loss_CAPE = 0
         loss_BCE = 0
-        if self.hparams.fine_tune == 1: # and self.current_epoch %2==0:
+        if self.hparams.fine_tune == 1:  # and self.current_epoch %2==0:
             n_bins = 10
             if (
                 self.hparams.finetune_type == "bin"
@@ -250,7 +248,7 @@ class SegmentationModel(pl.LightningModule):
                     # 		j+=1
                     # probs_emp = torch.reshape(proposed_probs, (y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)))
                     loss_CAPE = loss_CAPE + self.BCE(targets_probs, new_labels)
-                loss_CAPE = loss_CAPE /7
+                loss_CAPE = loss_CAPE / 7
             elif self.hparams.finetune_type == "mine":
                 probs_emp = torch.zeros(
                     [y_p.size(0), y_p.size(1), y_p.size(2), y_p.size(3)]
@@ -269,14 +267,14 @@ class SegmentationModel(pl.LightningModule):
             else:
                 raise NotImplementedError
 
-        #else:
+        # else:
         loss_BCE = self.BCEL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
         loss = loss_CAPE + loss_BCE
         self.train_losses.append([self.current_epoch, loss.item()])
         self.log("train/loss", loss, prog_bar=True)
         self.log("train/BCE", loss_BCE)
         self.log("train/CAPE", loss_CAPE)
-        
+
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -290,23 +288,31 @@ class SegmentationModel(pl.LightningModule):
         self.val_losses.append([self.current_epoch, loss.item()])
         self.log("val/loss", loss, prog_bar=True)
 
+        metrics = dict()
+
         for metric in self.metrics:
+            metrics[metric.__name__] = 0
             for j, th in enumerate(self.thresholds):
-                if metric.__name__ == "AUC" and 1 not in y_p[:, j, self.mask == 1]:
-                    self.log(
-                    f"val/{metric.__name__} {th*self.case_study_max:.0f}",
-                    1
-                )
+                if (
+                    metric.__name__ == "AUC" and 1 not in y_p[:, j, self.mask == 1]
+                ):  # if no pixel with more than 150mm can't calculate AUC, 1 by default
+                    met = 1
+
                 else:
-                    self.log(
-                        f"val/{metric.__name__} {th*self.case_study_max:.0f}",
-                        metric(y_p[:, j, self.mask == 1], y_hat_prob[:, j, self.mask == 1]),
+                    met = metric(
+                        y_p[:, j, self.mask == 1], y_hat_prob[:, j, self.mask == 1]
                     )
+                metrics[metric.__name__] = metrics[metric.__name__] + met
+                self.log(f"val/{metric.__name__} {th*self.case_study_max:.0f}", met)
+
+        for metric in self.metrics:  # print mean for metrics
+            met = metrics[metric.__name__] / len(self.thresholds)
+            self.log(f"val/{metric.__name__}", met)
 
     def test_step(self, batch, batch_idx):
         x, y, ev_date = batch["x"], batch["y"], batch.get("ev_date")
         y_hat, y_hat_prob = self.forward(x, ev_date)
-        
+
         y_p = []
         for i in range(len(self.thresholds)):
             y_p.append(y.gt(self.thresholds[i]).float())
@@ -314,12 +320,26 @@ class SegmentationModel(pl.LightningModule):
 
         self.test_predictions.append(y_hat)
 
+        metrics = dict()
+
         for metric in self.metrics:
+            metrics[metric.__name__] = 0
             for j, th in enumerate(self.thresholds):
-                self.log(
-                    f"test/{metric.__name__} {th*self.case_study_max:.0f}",
-                    metric(y_p[:, j, self.mask == 1], y_hat_prob[:, j, self.mask == 1]),
-                )
+                if (
+                    metric.__name__ == "AUC" and 1 not in y_p[:, j, self.mask == 1]
+                ):  # if no pixel with more than 150mm can't calculate AUC, 1 by default
+                    met = 1
+
+                else:
+                    met = metric(
+                        y_p[:, j, self.mask == 1], y_hat_prob[:, j, self.mask == 1]
+                    )
+                metrics[metric.__name__] = metrics[metric.__name__] + met
+                self.log(f"test/{metric.__name__} {th*self.case_study_max:.0f}", met)
+
+        for metric in self.metrics:  # print mean for metrics
+            met = metrics[metric.__name__] / len(self.thresholds)
+            self.log(f"test/{metric.__name__}", met)
 
         # Calculating Brier score input model
         input_models_brier_score = {}
@@ -405,9 +425,11 @@ def KL(gt, probs):
     ).mean()
     return kl_prob_gt
 
+
 def AUC(gt, probs):
-    #gt=gt.permute(0,2,3,1).reshape(gt.size(0)*gt.size(2)*gt.size(3),gt.size(1))
+    # gt=gt.permute(0,2,3,1).reshape(gt.size(0)*gt.size(2)*gt.size(3),gt.size(1))
     return roc_auc_score(y_true=gt.flatten().cpu(), y_score=probs.flatten().cpu())
+
 
 def brierScore(gt, probs):
     return ((probs - gt) ** 2).mean()
