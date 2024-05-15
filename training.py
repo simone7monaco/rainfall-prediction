@@ -90,7 +90,7 @@ def main(args):
             max_epochs=args.epochs,
             callbacks=[model_checkpoint, early_stop],
             log_every_n_steps=1,
-            #logger=logger,  # default is TensorBoard
+            logger=logger,  # default is TensorBoard
         )
         trainer.fit(model)
 
