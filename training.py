@@ -20,28 +20,20 @@ from models import SegmentationModel
 
 def get_args(args=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--case_study",
-        "-c",
-        type=str,
-        default="24h_10mmMAX_OI",
-        choices=["24h_10mmMAX_OI", "24h_10mmMAX_radar"],
-    )
+    parser.add_argument("--case_study", "-c", type=str, default="24h_10mmMAX_OI", choices=["24h_10mmMAX_OI", "24h_10mmMAX_radar"])
     parser.add_argument("--network_model", "-m", type=str, default="unet")
     parser.add_argument("--batch_size", type=int, default=32)
     # parser.add_argument("--split_idx", type=str, default="701515")
     parser.add_argument("--n_split", type=int, default=8)
     parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--epochs", "-e", type=int, default=100)
+    parser.add_argument("--epochs", "-e", type=int, default=1)
     parser.add_argument("--load_checkpoint", type=Path, default=None)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--forward_passes", type=int, default=1)
     parser.add_argument("--code_version", type=int, default=5)
-    parser.add_argument("--fine_tune", type=int, default=0)
-    parser.add_argument("--epochs_fn", "-f", type=int, default=130)
-    parser.add_argument(
-        "--finetune_type", type=str, default="bin", choices=["mine", "bin", "kde"]
-    )
+    parser.add_argument("--fine_tune", type=int, default=1)
+    parser.add_argument("--epochs_fn", "-f", type=int, default=50)
+    parser.add_argument("--finetune_type", type=str, default="bin", choices=["mine", "bin", "kde"])
     args = parser.parse_args(args)
     return args
 
@@ -74,9 +66,7 @@ def main(args):
         logger = WandbLogger(project="rainfall_prediction")
 
     if not args.load_checkpoint:
-        early_stop = EarlyStopping(
-            monitor="val/loss", min_delta=0.00, patience=25, verbose=False, mode="min"
-        )
+        early_stop = EarlyStopping(monitor="val/loss", min_delta=0.00, patience=25, verbose=False, mode="min")
         model_checkpoint = ModelCheckpoint(
             output_path / f"split_{args.n_split}",
             monitor="val/loss",

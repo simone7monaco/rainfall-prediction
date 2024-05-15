@@ -166,3 +166,4 @@ reports/
 data/
 _legacy/
 wandb/
+project.toml

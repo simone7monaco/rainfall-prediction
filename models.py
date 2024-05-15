@@ -1,29 +1,30 @@
-from pathlib import Path
-from utils import io
-from PIL import Image
-import pandas as pd
-import wandb
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 import os
-from sklearn.calibration import calibration_curve
-from sklearn.metrics import roc_auc_score
-import scipy
+from pathlib import Path
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import scipy
+import seaborn as sns
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import wandb
+from PIL import Image
+from sklearn.calibration import calibration_curve
+from sklearn.metrics import roc_auc_score
+
+from utils import io
 
 torch.set_float32_matmul_precision("high")
 NUM_WORKERS = 64
 
-from torch.utils.data import DataLoader
-from utils.datasets import NWPDataset
-from networks.unet import UNet, ExtraUNet
-from networks.vgunet import VGUNet
-
 import pytorch_lightning as pl
+from torch.utils.data import DataLoader
+
+from networks.unet import ExtraUNet, UNet
+from networks.vgunet import VGUNet
+from utils.datasets import NWPDataset
 
 
 class SegmentationModel(pl.LightningModule):
@@ -303,7 +304,9 @@ class SegmentationModel(pl.LightningModule):
                         y_p[:, j, self.mask == 1], y_hat_prob[:, j, self.mask == 1]
                     )
                 metrics[metric.__name__] = metrics[metric.__name__] + met
-                self.log(f"val_metric/{metric.__name__} {th*self.case_study_max:.0f}", met)
+                self.log(
+                    f"val_metric/{metric.__name__} {th*self.case_study_max:.0f}", met
+                )
 
         for metric in self.metrics:  # print mean for metrics
             met = metrics[metric.__name__] / len(self.thresholds)
@@ -335,7 +338,9 @@ class SegmentationModel(pl.LightningModule):
                         y_p[:, j, self.mask == 1], y_hat_prob[:, j, self.mask == 1]
                     )
                 metrics[metric.__name__] = metrics[metric.__name__] + met
-                self.log(f"test_metric/{metric.__name__} {th*self.case_study_max:.0f}", met)
+                self.log(
+                    f"test_metric/{metric.__name__} {th*self.case_study_max:.0f}", met
+                )
 
         for metric in self.metrics:  # print mean for metrics
             met = metrics[metric.__name__] / len(self.thresholds)
@@ -352,7 +357,7 @@ class SegmentationModel(pl.LightningModule):
                 ((prob_input_models - y.gt(lv).float()) ** 2).mean().item()
             )
 
-            print(f">Brier score for input models: {input_models_brier_score[lv]:.4f}")
+            print(f">Brier score for input models {lv} mm: {input_models_brier_score[lv]:.4f}")
 
         # sns.set_style("whitegrid")
 
