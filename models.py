@@ -138,7 +138,7 @@ class SegmentationModel(pl.LightningModule):
         )  # This makes sure self.mask is on the same device as the model
 
         self.in_features = in_features
-        self.out_features = len(self.thresholds)  # out_features
+        self.out_features = self.hparams.n_thresh  # out_features
 
     def train_dataloader(self):
         if isinstance(self.cnn, ExtraUNet):
