@@ -64,10 +64,7 @@ class SegmentationModel(pl.LightningModule):
             150 / self.case_study_max,
             1 / self.case_study_max,
         ]
-        th = []
-        for i in range(self.hparams.n_thresh):
-            th.append=thresh[i]
-        self.thresholds = th
+        self.thresholds = thresh[:self.hparams.n_thresh]
         self.metrics = [ECE, KL, AUC, brierScore]
         self.test_predictions = []
 
