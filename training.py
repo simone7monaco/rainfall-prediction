@@ -32,6 +32,18 @@ def get_args(args=None):
 	return args
 	
 
+def get_model(model_name):
+	if model_name in ['unet', 'mcd_unet']:
+		from base_segmodel import _SegmentationModel as SegmentationModel
+	elif model_name == 'sde_unet':
+		from sde_segmodel import SegmentationModel
+	elif model_name == 'ensemble_unet':
+		from ensemble_segmodel import SegmentationModel
+	else:
+		raise ValueError(f"Unknown network model {model_name}")
+	return SegmentationModel
+
+
 def main(args):
 	pl.seed_everything(args.seed)
 
@@ -51,20 +63,12 @@ def main(args):
 		args.mc_dropout = .2
     
 	# logger = CSVLogger(output_path, name=args.network_model)
+	SegmentationModel = get_model(args.network_model)
 
 	if not args.load_checkpoint:
 		early_stop = EarlyStopping(monitor="val/loss", min_delta=0.00, patience=10, verbose=False, mode="min")
 		model_checkpoint = ModelCheckpoint(output_path / f"split_{args.n_split}", monitor='val/loss', mode='min', filename='{epoch}-{val_rmse:.2f}')
 		
-		if args.network_model in ['unet', 'mcd_unet']:
-			from base_segmodel import _SegmentationModel as SegmentationModel
-		elif args.network_model == 'sde_unet':
-			from sde_segmodel import SegmentationModel
-		elif args.network_model == 'ensemble_unet':
-			from ensemble_segmodel import SegmentationModel
-		else:
-			raise ValueError(f"Unknown network model {args.network_model}")
-
 		if args.wb:
 			logger = pl.loggers.WandbLogger(project='rainfall')
 			logger.log_hyperparams(args.__dict__)
@@ -73,6 +77,7 @@ def main(args):
 		model = SegmentationModel(**args.__dict__)
 		trainer = pl.Trainer(
 			accelerator='gpu' if cuda.is_available() else 'cpu',
+			devices=[0],
 			max_epochs=args.epochs,
 			callbacks=[model_checkpoint],
 			log_every_n_steps=1,
@@ -84,15 +89,21 @@ def main(args):
 		print(f"\nLoading best model ({model_checkpoint.best_model_path})")
 		model = SegmentationModel.load_from_checkpoint(model_checkpoint.best_model_path)
 	else:
-		trainer = pl.Trainer(accelerator='gpu' if cuda.is_available() else 'cpu')
+		if not args.load_checkpoint.exists():
+			all_ckpt = list((output_path / f"split_{args.n_split}").glob("*ckpt"))
+			# name is like epoch=NN-val_rmse=NN.NN.ckpt sort by val_rmse and get the one with the highest val_rmse
+			args.load_checkpoint = sorted(all_ckpt, key=lambda x: float(x.stem.split('=')[-1]))[-1]
+			# if float(args.load_checkpoint.stem.split('=')[-1]) 
+
+		trainer = pl.Trainer(accelerator='gpu' if cuda.is_available() else 'cpu',
+					   		 logger=None)
 		print(f"\n⬆️  Loading checkpoint {args.load_checkpoint}")
 		model = SegmentationModel.load_from_checkpoint(args.load_checkpoint)
-		
 	
+	model.log_dir = output_path / f"split_{args.n_split}"
 	trainer.test(model)
 	if args.eval_proba:
 		model.eval_proba(save_dir=Path('proba'))
-		
 
 
 if __name__ == '__main__':

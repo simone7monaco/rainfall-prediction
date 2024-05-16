@@ -136,7 +136,9 @@ class _SegmentationModel(pl.LightningModule):
 
 
 	def log_images(self, features, masks, logits_, idx):
-		respath = Path(self.logger.log_dir) / "test_images"
+		if not hasattr(self, 'log_dir') and self.logger is not None:
+			self.log_dir = Path(self.logger.log_dir)
+		respath = self.log_dir / "test_images"
 		respath.mkdir(exist_ok=True)
 		tensor_to_img = lambda t: (t.detach().cpu().numpy()[0] * 255)
 		for img_idx, (image, y_true, y_pred) in enumerate(zip(features, masks, logits_)):
@@ -262,7 +264,4 @@ class _SegmentationModel(pl.LightningModule):
 		plt.legend()
 		plt.savefig("brier_scores.png")
 		# plt.savefig(Path(self.logger.log_dir)/"brier_scores.png")
-
-
 		
-			
