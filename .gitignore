@@ -167,3 +167,4 @@ data/
 _legacy/
 wandb/
 config_dev.yaml
+__*
