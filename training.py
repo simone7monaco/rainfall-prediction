@@ -88,8 +88,8 @@ def main(args):
                 fine_tune=fine_tune,
                 finetune_type=args.finetune_type,
             )
-        if fine_tune == 0:
-            trainer.test(model)
+            if fine_tune == 0:
+                trainer.test(model)
         else:
             trainer = pl.Trainer(accelerator="gpu" if cuda.is_available() else "cpu")
             print(f"\n⬆️  Loading checkpoint {args.load_checkpoint}")
