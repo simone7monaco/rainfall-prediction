@@ -7,20 +7,6 @@ import pandas as pd
 from sklearn.model_selection import StratifiedKFold  # type: ignore
 
 
-def get_dates(
-    topdir: str,
-    split_name: Literal["training", "validation", "test", "bad"],
-    split_id: str | int,
-    n_split: str | int,
-) -> np.ndarray:
-    if split_name!="bad":
-        file_path = os.path.join(topdir, "split", f"split_{split_id}_{n_split}_{split_name}_dates.csv")
-    else:
-        file_path = os.path.join(topdir, "split", "bad_test_events.csv")
-    assert os.path.exists(file_path), f"File {file_path} does not exist"
-    return pd.read_csv(file_path, header=None).iloc[:, 0].to_numpy()
-
-
 def get_model(topdir: Path, model_name: str, date: str, case_study_max: float) -> np.ndarray:
     file_path = topdir/"models"/f"{model_name}_{date}_0024_regrid.csv"
     if not file_path.exists():
@@ -68,57 +54,40 @@ def load_data(
 ) -> tuple[np.ndarray, np.ndarray]:
     models_data = []
     obs_data = []
+
+    dates_df = pd.read_csv(topdir / "allevents_dates.csv", sep=";", index_col=0)
     for date in dates:
         _models_tmp = []
         #print(date)
         for model_name in available_models:
-            _mdl_data = get_model(topdir, model_name, date, case_study_max)
+            _mdl_data = pd.read_csv(topdir / dates_df.loc[date, model_name.upper()],
+                                    sep=";", header=None).to_numpy() / case_study_max
+            
             _mdl_data=np.hstack((_mdl_data,np.zeros((_mdl_data.shape[0], int(2**np.ceil(np.log2(_mdl_data.shape[1]))) - _mdl_data.shape[1])))) # **update:** this was hardcoded as (96, 12) [12 supposed to be 128]
             _mdl_data[indices_zero] = 0
-            # print(model_name)
-            # plt.imshow(_mdl_data)
-            # plt.show()
+
             if _mdl_data.shape[0] % 2 != 0:
                 _mdl_data = _mdl_data[:-1]
             _models_tmp.append(_mdl_data)
         models_data.append(_models_tmp)
-        _obs_data = get_obs(topdir, date, case_study_max)
+        _obs_data = pd.read_csv(topdir / dates_df.loc[date, "OBS"],
+                                sep=";", header=None).to_numpy() / case_study_max
         _obs_data=np.hstack((_obs_data,np.zeros((_obs_data.shape[0], int(2**np.ceil(np.log2(_obs_data.shape[1]))) - _obs_data.shape[1]))))
         _obs_data[indices_zero] = 0
         if _obs_data.shape[0] % 2 != 0:
             _obs_data = _obs_data[:-1]
-        # print("obs")
-        # plt.imshow(_obs_data)
-        # plt.show()                
+             
         obs_data.append(_obs_data)
     x = np.stack(models_data, axis=0).astype(np.float32)
     y = np.stack(obs_data, axis=0).astype(np.float32)
     return x, y, x.shape[1],1
         
 
-# def get_casestudy_stuff(input_path:str, split_idx:str, n_split: int, case_study:str, ispadded:bool):
-#     # if case_study=="24h_10mmMAX_OI":
-#     case_study_max=483.717752
-#     available_models = ["bol00", "e1000", "c2200", "c5m00"]
-#     train_dates = get_dates(input_path, "training", split_idx, n_split)
-#     val_dates = get_dates(input_path, "validation", split_idx, n_split)
-#     test_dates = get_dates(input_path, "test", split_idx, n_split) 
-#     try:   
-#         bad_dates = get_dates(input_path, "bad", "", 0)   
-#         test_dates=np.concatenate((test_dates, bad_dates), axis=None)
-#     except:
-#         pass
-
-#     indices_one, indices_zero, mask = get_mask_indices(input_path,ispadded)
-#     nx=mask.shape[0]
-#     ny=mask.shape[1]
-#     return case_study_max,available_models, train_dates, val_dates, test_dates, indices_one, indices_zero, mask, nx, ny
-
 def get_casestudy_stuff(input_path:str, n_split: int, case_study:str, ispadded:bool, seed:int):
     case_study_max=483.717752
     available_models = ["bol00", "e1000", "c2200", "c5m00"]
 
-    dates = pd.read_csv(input_path / "split/cluster_all_dates.csv", sep=";")
+    dates = pd.read_csv(input_path / "allevents_dates.csv", sep=";")
     skf = StratifiedKFold(n_splits=9, random_state=seed, shuffle=True)
     train_index, test_index = list(skf.split(dates, dates.NAME))[n_split]
     val_index, train_index = np.split(train_index, [len(test_index)])

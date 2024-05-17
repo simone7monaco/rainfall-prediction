@@ -18,6 +18,7 @@ def get_args(args=None):
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--case_study", "-c", type=str, default="24h_10mmMAX_OI", choices=['24h_10mmMAX_OI', '24h_10mmMAX_radar'])
 	parser.add_argument("--network_model", "-m", type=str, default="unet", choices=['unet', 'sde_unet', 'ensemble_unet', 'mcd_unet'])
+	parser.add_argument("--output_path", "-o", type=Path, default=Path('lightning_logs'))
 	parser.add_argument("--batch_size", type=int, default=32)
 	# parser.add_argument("--split_idx", type=str, default="701515")
 	parser.add_argument("--n_split", type=int, default=8)
@@ -55,7 +56,7 @@ def main(args):
 		scratch_path = Path(conf_dev['scratch_path'])
 
 	input_path = scratch_path / args.case_study
-	output_path = Path('lightning_logs')
+	output_path = args.output_path
 	output_path /= f'{args.network_model}'
 	
 	args.input_path = input_path
