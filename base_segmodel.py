@@ -134,6 +134,14 @@ class _SegmentationModel(pl.LightningModule):
 	# 	plt.yscale('log')
 	# 	fig.savefig(Path(self.logger.log_dir)/"losses.png")
 
+	@torch.no_grad()
+	def multiple_eval(self, x, num_forward_passes=10):
+		""" Function to get multiple evaluations of tensor x and returning the mean and variance of the predictions"""
+		predictions = []
+		for _ in range(num_forward_passes):
+			predictions.append(self.forward(x))
+		predictions = torch.stack(predictions, dim=0)
+		return predictions.mean(dim=0), predictions.var(dim=0)
 
 	def log_images(self, features, masks, logits_, idx):
 		if not hasattr(self, 'log_dir') and self.logger is not None:
@@ -161,12 +169,12 @@ class _SegmentationModel(pl.LightningModule):
 		forward_passes : int
 			number of monte-carlo samples/forward passes
 		"""
-		assert hasattr(self.cnn, 'eval_dp'), 'Model does not have dropout layers'
+		assert hasattr(self.cnn, 'dropout') and self.cnn.dropout > 0, 'Model does not have dropout layers'
 
 		dropout_predictions = []
 		for i in range(forward_passes):
 			predictions = []
-			self.cnn.eval_dp()
+			self.cnn.eval()
 			with torch.no_grad():
 				for batch in self.test_dataloader():
 					x, y, ev_date = batch['x'], batch['y'], batch.get('ev_date')
@@ -208,7 +216,7 @@ class _SegmentationModel(pl.LightningModule):
 		the probability for the models (the MCD samples) to be above the threshold. The function will then compute the Brier score
 		"""
 
-		assert hasattr(self.cnn, 'eval_dp'), 'Model does not have dropout layers'
+		assert hasattr(self.cnn, 'dropout') and self.cnn.dropout > 0, 'Model does not have dropout layers'
 
 		if save_dir is None:
 			save_dir = Path(self.logger.log_dir)
@@ -218,7 +226,7 @@ class _SegmentationModel(pl.LightningModule):
 		y_all = torch.cat([batch['y'] for batch in self.test_dataloader()], dim=0) * self.case_study_max
 		enames_all = torch.cat([batch['ev_date'] for batch in self.test_dataloader()], dim=0)
 		
-		self.cnn.eval_dp()
+		self.cnn.eval()
 		with torch.no_grad():
 			for i in range(forward_passes):
 				predictions = []

@@ -24,8 +24,8 @@ def get_dates(
 def get_model(topdir: Path, model_name: str, date: str, case_study_max: float) -> np.ndarray:
     file_path = topdir/"models"/f"{model_name}_{date}_0024_regrid.csv"
     if not file_path.exists():
-        file_path = topdir
-    assert os.path.exists(file_path), f"File {file_path} does not exist"
+        file_path = topdir/"models"/"data_extremeEvents"/"new_dataset"/f"{model_name}_{date}_0024_regrid.csv"
+    assert file_path.exists(), f"File {file_path} does not exist"
     model_data = pd.read_csv(file_path, sep=";", header=None).to_numpy()
     return model_data / case_study_max
 
@@ -48,14 +48,10 @@ def get_mask_indices(topdir: str, ispadded:bool):
 
 def get_obs(topdir: str, date: str, case_study_max: float) -> np.ndarray:
     # file_path = topdir / "obs" / "data" / f"OI_{date}_regrid.csv"
-    case_study = topdir.stem.split('_')[-1]
-    file_path = list((topdir / "obs" / "data").glob(f'{case_study}*{date}*csv'))
-    if len(file_path) > 1:
-        file_path = [f for f in file_path if f.stem.endswith('regrid')][0]
-    elif len(file_path) == 1:
-        file_path = file_path[0]
-    else:
-        file_path = (file_path.parents[1]/"data_extremeEvents")
+    case_study = topdir.stem.split('_')[-1] # OI | radar
+    file_path = topdir / "obs" / "data"/f"{case_study}_{date}_regrid.csv"
+    if not file_path.exists():
+        file_path = file_path.parents[1]/"data_extremeEvents"/"new_dataset"/f"{case_study}_{date}_regrid.csv"
         if not file_path.exists():
             raise FileNotFoundError(f"File '{case_study}*{date}*.csv' does not exist")
     obs_data = pd.read_csv(file_path, sep=";", header=None).to_numpy()

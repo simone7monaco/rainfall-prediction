@@ -54,3 +54,13 @@ class SegmentationModel(_SegmentationModel):
 		for metric in self.metrics:
 			self.log(f"test/test_{metric.__name__}", metric(y_hat, y))
 
+	@torch.no_grad()
+	def multiple_eval(self, x, num_forward_passes=5):
+		assert num_forward_passes <= self.n_models, "num_forward_passes must be less or equal to the number of ensemble models"
+		predictions = []
+		for i in range(num_forward_passes):
+			predictions.append(self.cnn[i](x))
+		predictions = torch.stack(predictions)
+		return predictions.mean(dim=0), predictions.std(dim=0)
+
+

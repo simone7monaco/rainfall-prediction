@@ -46,6 +46,8 @@ class UNet(nn.Module):
         # Encoder
         # In the encoder, convolutional layers with the Conv2d function are used to extract features from the input image. 
         # Each block in the encoder consists of two convolutional layers followed by a max-pooling layer, with the exception of the last block which does not include a max-pooling layer.
+
+        self.dropout = dropout
         channels = [in_features] + channels
         self.encs = nn.ModuleList([
             EncBlock(channels[i], channels[i+1], dropout) for i in range(len(channels)-1)
@@ -58,11 +60,13 @@ class UNet(nn.Module):
         # Output layer
         self.outconv = nn.Conv2d(64, out_features, kernel_size=1)
     
-    def eval_dp(self):
+    def eval(self):
         self.eval()
-        for m in self.modules():
-            if isinstance(m, nn.Dropout):
-                m.train()
+        if self.dropout > 0:
+            for m in self.modules():
+                if isinstance(m, nn.Dropout):
+                    m.train()
+            
 
     def encoder(self, p):
         skips = []
