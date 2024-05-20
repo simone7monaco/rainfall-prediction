@@ -50,7 +50,7 @@ class SegmentationModel(pl.LightningModule):
             )
         #self.MSE = nn.MSELoss()
         self.sigmoid = nn.Sigmoid()
-        #self.BCEL = nn.BCEWithLogitsLoss()
+        self.BCEL = nn.BCEWithLogitsLoss()
         self.BCE = nn.BCELoss()
         self.FCL = FocalLoss()
         #self.ERL = EntropyRegularizedLoss()
