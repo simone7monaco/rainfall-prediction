@@ -468,7 +468,7 @@ class EntropyRegularizedLoss(nn.Module):
     
 
 class FocalLoss(nn.Module):
-    def __init__(self, gamma=0, size_average=True):
+    def __init__(self, gamma=2, size_average=True):
         super(FocalLoss, self).__init__()
         self.gamma = gamma
         self.size_average = size_average
@@ -480,8 +480,8 @@ class FocalLoss(nn.Module):
             input = input.contiguous().view(-1,input.size(2))   # N,H*W,C => N*H*W,C
         target = target.view(-1,1)
 
-        logpt = F.log_softmax(input, dim=1)
-        logpt = logpt.gather(1,target)
+        logpt = F.log(input, dim=1)
+        logpt = logpt.gather(1,int(target))
         logpt = logpt.view(-1)
         pt = logpt.exp()
 
