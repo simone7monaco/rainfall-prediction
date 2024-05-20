@@ -86,7 +86,7 @@ class ModelWithTemperature(nn.Module):
         labels_list = []
         with torch.no_grad():
             for input, label, date in self.train_dataloader:
-                input = input.cuda()
+                input = input
                 logits, l = self.model(input, date)
                 logits_list.append(logits)
                 y_p = []
