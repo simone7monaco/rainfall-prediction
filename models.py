@@ -274,7 +274,7 @@ class SegmentationModel(pl.LightningModule):
         else:
             loss_BCE = self.BCEL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
         loss = loss_CAPE + loss_BCE
-        loss = self.FCL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1]) ##focal loss
+        #loss = self.FCL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1]) ##focal loss
         #loss = self.ERL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1]) ##entropy reg loss
         self.train_losses.append([self.current_epoch, loss.item()])
         self.log("train/loss", loss, prog_bar=True)
