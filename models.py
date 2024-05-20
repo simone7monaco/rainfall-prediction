@@ -203,8 +203,8 @@ class SegmentationModel(pl.LightningModule):
         y_p = torch.cat(y_p, dim=1)
         loss_CAPE = 0
         loss_BCE = 0
-        if self.hparams.fine_tune == 1:  # and self.current_epoch %2==0:
-            n_bins = 20
+        if self.hparams.fine_tune == 1 and self.current_epoch %2==0:
+            n_bins = 10
             if (
                 self.hparams.finetune_type == "bin"
                 or self.hparams.finetune_type == "kde"
@@ -269,8 +269,8 @@ class SegmentationModel(pl.LightningModule):
             else:
                 raise NotImplementedError
 
-        # else:
-        loss_BCE = self.BCEL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
+        else:
+            loss_BCE = self.BCEL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
         loss = loss_CAPE + loss_BCE
         self.train_losses.append([self.current_epoch, loss.item()])
         self.log("train/loss", loss, prog_bar=True)
