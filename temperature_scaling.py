@@ -44,7 +44,7 @@ class ModelWithTemperature(nn.Module):
                 torch.from_numpy(train_dates),
             )
         )
-        self.train_dataloader = DataLoader( train_dataset, batch_size=self.hparams.batch_size, shuffle=True, num_workers=NUM_WORKERS)
+        self.train_dataloader = DataLoader( train_dataset, batch_size=32, shuffle=True, num_workers=NUM_WORKERS)
         
         mask = torch.from_numpy(mask).float().to(self.device)
         self.register_buffer(
