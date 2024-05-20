@@ -46,10 +46,7 @@ class ModelWithTemperature(nn.Module):
         )
         self.train_dataloader = DataLoader( train_dataset, batch_size=32, shuffle=True, num_workers=NUM_WORKERS)
         
-        mask = torch.from_numpy(mask).float().to(self.device)
-        self.register_buffer(
-            "mask", mask
-        )  # This makes sure self.mask is on the same device as the model
+        mask = torch.from_numpy(mask).float().cuda()
         
         thresh = [
             5 / case_study_max,
