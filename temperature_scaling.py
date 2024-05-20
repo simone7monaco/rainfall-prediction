@@ -20,16 +20,6 @@ class ModelWithTemperature(nn.Module):
         self.model = model
         self.temperature = nn.Parameter(torch.ones(1)*1.5)
         
-        thresh = [
-            5 / self.case_study_max,
-            10 / self.case_study_max,
-            20 / self.case_study_max,
-            50 / self.case_study_max,
-            100 / self.case_study_max,
-            150 / self.case_study_max,
-            1 / self.case_study_max,
-        ]
-        self.thresholds = thresh[:n_thresh]
         
         (case_study_max, available_models, train_dates, val_dates, test_dates, indices_one, indices_zero, mask, nx, ny,
         ) = io.get_casestudy_stuff(
@@ -60,6 +50,17 @@ class ModelWithTemperature(nn.Module):
         self.register_buffer(
             "mask", mask
         )  # This makes sure self.mask is on the same device as the model
+        
+        thresh = [
+            5 / case_study_max,
+            10 / case_study_max,
+            20 / case_study_max,
+            50 / case_study_max,
+            100 / case_study_max,
+            150 / case_study_max,
+            1 / case_study_max,
+        ]
+        self.thresholds = thresh[:n_thresh]
 
     def forward(self, input):
         logits = self.model(input)
