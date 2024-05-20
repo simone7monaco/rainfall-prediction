@@ -14,6 +14,8 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 import yaml
 
+from temperature_scaling import ModelWithTemperature
+
 
 from models import SegmentationModel
 
@@ -88,7 +90,14 @@ def main(args):
                 fine_tune=fine_tune,
                 finetune_type=args.finetune_type,
             )
+            
+            
             if fine_tune == 0:
+                temperature=1 #set here
+                if temperature==1:
+                    model_temperature = ModelWithTemperature(model, args.seed, args.n_split, args.input_path, args.case_study, args.n_thresh)
+                    temp = model_temperature.set_temperature()
+                
                 trainer.test(model)
         else:
             trainer = pl.Trainer(accelerator="gpu" if cuda.is_available() else "cpu")
