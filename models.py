@@ -465,7 +465,7 @@ class EntropyRegularizedLoss(nn.Module):
         target: [N, ]
         """
         #logpt = F.log_softmax(input, dim=1)
-        logpt = F.log(input, dim=1)
+        logpt = torch.log(input, dim=1)
         p_logp = (logpt * logpt.exp())
         entropy = -p_logp.sum(dim=1)
         loss = F.nll_loss(logpt, target) - self.beta * entropy.mean()
@@ -485,7 +485,7 @@ class FocalLoss(nn.Module):
             input = input.contiguous().view(-1,input.size(2))   # N,H*W,C => N*H*W,C
         target = target.view(-1,1)
 
-        logpt = F.log(input, dim=1)
+        logpt = torch.log(input, dim=1)
         logpt = logpt.gather(1,int(target))
         logpt = logpt.view(-1)
         pt = logpt.exp()
