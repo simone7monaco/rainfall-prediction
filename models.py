@@ -52,6 +52,8 @@ class SegmentationModel(pl.LightningModule):
         self.sigmoid = nn.Sigmoid()
         self.BCEL = nn.BCEWithLogitsLoss()
         self.BCE = nn.BCELoss()
+        self.FCL = FocalLoss()
+        self.ERL = EntropyRegularizedLoss()
         # self.loss = lambda y_hat, y: F.mse_loss(y_hat * self.mask, y * self.mask)
 
         self.rmse = lambda loss: (loss * (self.case_study_max**2)).sqrt().item()
@@ -272,6 +274,8 @@ class SegmentationModel(pl.LightningModule):
         else:
             loss_BCE = self.BCEL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
         loss = loss_CAPE + loss_BCE
+        loss = self.FCL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1]) ##focal loss
+        #loss = self.ERL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1]) ##entropy reg loss
         self.train_losses.append([self.current_epoch, loss.item()])
         self.log("train/loss", loss, prog_bar=True)
         self.log("train/BCE", loss_BCE)
@@ -439,3 +443,50 @@ def AUC(gt, probs):
 
 def brierScore(gt, probs):
     return ((probs - gt) ** 2).mean()
+
+
+class EntropyRegularizedLoss(nn.Module):
+    '''
+    Loss regularized by entropy implementation
+    L = CE - beta * H
+    '''
+    def __init__(self, beta=1, weight=None):
+        super(EntropyRegularizedLoss, self).__init__()
+        self.beta = beta
+        self.weight = weight
+
+    def forward(self, input, target):
+        """
+        input: [N, C]
+        target: [N, ]
+        """
+        logpt = F.log_softmax(input, dim=1)
+        p_logp = (logpt * logpt.exp())
+        entropy = -p_logp.sum(dim=1)
+        loss = F.nll_loss(logpt, target) - self.beta * entropy.mean()
+        return loss
+    
+
+class FocalLoss(nn.Module):
+    def __init__(self, gamma=0, size_average=True):
+        super(FocalLoss, self).__init__()
+        self.gamma = gamma
+        self.size_average = size_average
+
+    def forward(self, input, target):
+        if input.dim() > 2:
+            input = input.view(input.size(0),input.size(1),-1)  # N,C,H,W => N,C,H*W
+            input = input.transpose(1,2)    # N,C,H*W => N,H*W,C
+            input = input.contiguous().view(-1,input.size(2))   # N,H*W,C => N*H*W,C
+        target = target.view(-1,1)
+
+        logpt = F.log_softmax(input, dim=1)
+        logpt = logpt.gather(1,target)
+        logpt = logpt.view(-1)
+        pt = logpt.exp()
+
+        loss = -1 * (1-pt)**self.gamma * logpt
+        if self.size_average: 
+            return loss.mean()
+        else: 
+            return loss.sum()
