@@ -58,16 +58,16 @@ class SegmentationModel(pl.LightningModule):
 
         self.rmse = lambda loss: (loss * (self.case_study_max**2)).sqrt().item()
         thresh = [
+            1 / self.case_study_max,
             5 / self.case_study_max,
             10 / self.case_study_max,
             20 / self.case_study_max,
             50 / self.case_study_max,
             100 / self.case_study_max,
             150 / self.case_study_max,
-            1 / self.case_study_max,
         ]
         self.thtot = [
-            5, 10, 20, 50, 100, 150, 1
+            1, 5, 10, 20, 50, 100, 150
         ]
         self.thresholds = thresh[:self.hparams.n_thresh]
         self.metrics = [ECE, KL, AUC, brierScore]

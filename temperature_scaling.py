@@ -85,7 +85,8 @@ class ModelWithTemperature(nn.Module):
         logits_list = []
         labels_list = []
         with torch.no_grad():
-            for input, label, date in self.train_dataloader:
+            for batch in self.train_dataloader:
+                input, label, date = batch["x"], batch["y"], batch.get("ev_date")
                 input = input
                 logits, l = self.model(input, date)
                 logits_list.append(logits)
