@@ -68,7 +68,7 @@ class ModelWithTemperature(nn.Module):
         Perform temperature scaling on logits
         """
         # Expand temperature to match the size of logits
-        temperature = self.temperature.unsqueeze(1,2,3).expand(logits.size(0), logits.size(1), logits.size(2), logits.size(3))
+        temperature = self.temperature.unsqueeze([1,2,3]).expand(logits.size(0), logits.size(1), logits.size(2), logits.size(3))
         return logits / temperature
 
     # This function probably should live outside of this class, but whatever
