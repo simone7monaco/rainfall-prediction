@@ -91,7 +91,7 @@ def main(args):
                 fine_tune=fine_tune,
                 finetune_type=args.finetune_type,
             )
-            torch.save(model.input_embeddings.state_dict(), "model.pt")
+            torch.save(model.state_dict(), "model.pt")
             
             
             
