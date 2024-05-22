@@ -57,23 +57,14 @@ class SegmentationModel(pl.LightningModule):
         # self.loss = lambda y_hat, y: F.mse_loss(y_hat * self.mask, y * self.mask)
 
         self.rmse = lambda loss: (loss * (self.case_study_max**2)).sqrt().item()
-        # thresh = [
-        #     5 / self.case_study_max,
-        #     10 / self.case_study_max,
-        #     20 / self.case_study_max,
-        #     50 / self.case_study_max,
-        #     100 / self.case_study_max,
-        #     150 / self.case_study_max,
-        #     1 / self.case_study_max,
-        # ]
         thresh = [
-            io.toLog(5),
-            io.toLog(10),
-            io.toLog(20),
-            io.toLog(50),
-            io.toLog(100),
-            io.toLog(150),
-            io.toLog(1),
+            5 / self.case_study_max,
+            10 / self.case_study_max,
+            20 / self.case_study_max,
+            50 / self.case_study_max,
+            100 / self.case_study_max,
+            150 / self.case_study_max,
+            1 / self.case_study_max,
         ]
         self.thtot = [
             5, 10, 20, 50, 100, 150, 1
@@ -363,18 +354,18 @@ class SegmentationModel(pl.LightningModule):
             met = metrics[metric.__name__] / len(self.thresholds)
             self.log(f"test/{metric.__name__}", met)
 
-        # Calculating Brier score input model
-        # input_models_brier_score = {}
-        # lv_thresholds = [1, 5, 10, 20, 50, 100, 150]
-        # y = y * self.case_study_max
-        # x = x * self.case_study_max
-        # for j, lv in enumerate(lv_thresholds):
-        #     prob_input_models = (x > lv).float()
-        #     input_models_brier_score[lv] = (
-        #         ((prob_input_models - y.gt(lv).float()) ** 2).mean().item()
-        #     )
+        #Calculating Brier score input model
+        input_models_brier_score = {}
+        lv_thresholds = [1, 5, 10, 20, 50, 100, 150]
+        y = y * self.case_study_max
+        x = x * self.case_study_max
+        for j, lv in enumerate(lv_thresholds):
+            prob_input_models = (x > lv).float()
+            input_models_brier_score[lv] = (
+                ((prob_input_models - y.gt(lv).float()) ** 2).mean().item()
+            )
 
-        #     print(f">Brier score for input models {lv} mm: {input_models_brier_score[lv]:.4f}")
+            print(f">Brier score for input models {lv} mm: {input_models_brier_score[lv]:.4f}")
 
         # sns.set_style("whitegrid")
 
