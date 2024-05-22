@@ -92,15 +92,12 @@ def main(args):
                 fine_tune=fine_tune,
                 finetune_type=args.finetune_type,
             )
-            #torch.save(model.state_dict(), "model.pt")
             
             
             
             if fine_tune == 0:
                 temperature=1 #set here
                 if temperature==1:
-                    #model_t = SegmentationModel(**args.__dict__)
-                    #model_t.load_state_dict(torch.load("model.pt"))
                     model_temperature = ModelWithTemperature(model, args.seed, args.n_split, args.input_path, args.case_study, args.n_thresh)
                     temp = model_temperature.set_temperature()
                 
