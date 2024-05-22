@@ -18,7 +18,7 @@ class ModelWithTemperature(nn.Module):
     def __init__(self, model, seed, n_split, input_path, case_study, n_thresh):
         super(ModelWithTemperature, self).__init__()
         self.model = model
-        self.temperature = nn.Parameter(torch.ones(1)*1.5)
+        self.temperature = nn.Parameter(torch.ones(1))
         
         
         (case_study_max, available_models, train_dates, val_dates, test_dates, indices_one, indices_zero, mask, nx, ny,
