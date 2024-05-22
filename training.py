@@ -93,7 +93,7 @@ def main(args):
             
             
             if fine_tune == 0:
-                temperature=0 #set here
+                temperature=1 #set here
                 if temperature==1:
                     model_temperature = ModelWithTemperature(model, args.seed, args.n_split, args.input_path, args.case_study, args.n_thresh)
                     temp = model_temperature.set_temperature()
