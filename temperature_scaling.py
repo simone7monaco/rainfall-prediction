@@ -96,12 +96,13 @@ class ModelWithTemperature(nn.Module):
                     y_p.append(label.gt(self.thresholds[i]).float())
                 y_p = torch.cat(y_p, dim=1)
                 labels_list.append(y_p)
-            logits = torch.cat(logits_list).cuda()
+            logits = torch.cat(logits_list)
             labels = torch.cat(labels_list).cuda()
 
         # Calculate NLL and ECE before temperature scaling
         before_temperature_nll = nll_criterion(logits, labels).item()
         print('Before temperature - NLL: %.3f' % (before_temperature_nll))
+        print(f"SHAPE: {logits.shape()}")
 
         # Next: optimize the temperature w.r.t. NLL
         optimizer = optim.LBFGS([self.temperature], lr=0.01, max_iter=50)
