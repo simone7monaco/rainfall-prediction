@@ -28,7 +28,8 @@ def get_model(
     file_path = os.path.join(topdir, "models", f"{model_name}_{date}_0024_regrid.csv")
     assert os.path.exists(file_path), f"File {file_path} does not exist"
     model_data = pd.read_csv(file_path, sep=";", header=None).to_numpy()
-    return model_data / case_study_max
+    #return model_data / case_study_max
+    return toLog(model_data)
 
 
 def get_mask_indices(topdir: str, ispadded: bool):
@@ -60,7 +61,8 @@ def get_obs(topdir: str, date: str, case_study_max: float) -> np.ndarray:
     else:
         raise FileNotFoundError(f"File '{case_study}*{date}*.csv' does not exist")
     obs_data = pd.read_csv(file_path, sep=";", header=None).to_numpy()
-    return obs_data / case_study_max
+    #return obs_data / case_study_max
+    return toLog(obs_data)
 
 
 def load_data(
@@ -198,3 +200,7 @@ def date_features(dates: List[AnyStr]):
     df["cos_day"] = np.cos(2 * np.pi * df.date.dt.dayofyear / 365)
 
     return df.reset_index(drop=True).drop(columns=["date"]).values.astype(np.float32)
+
+def toLog(x):
+    offset = 0.01
+    return np.log(x + offset)/6.19   #log case study max

@@ -57,14 +57,26 @@ class SegmentationModel(pl.LightningModule):
         # self.loss = lambda y_hat, y: F.mse_loss(y_hat * self.mask, y * self.mask)
 
         self.rmse = lambda loss: (loss * (self.case_study_max**2)).sqrt().item()
+        # thresh = [
+        #     5 / self.case_study_max,
+        #     10 / self.case_study_max,
+        #     20 / self.case_study_max,
+        #     50 / self.case_study_max,
+        #     100 / self.case_study_max,
+        #     150 / self.case_study_max,
+        #     1 / self.case_study_max,
+        # ]
         thresh = [
-            5 / self.case_study_max,
-            10 / self.case_study_max,
-            20 / self.case_study_max,
-            50 / self.case_study_max,
-            100 / self.case_study_max,
-            150 / self.case_study_max,
-            1 / self.case_study_max,
+            io.toLog(5),
+            io.toLog(10),
+            io.toLog(20),
+            io.toLog(50),
+            io.toLog(100),
+            io.toLog(150),
+            io.toLog(1),
+        ]
+        self.thtot = [
+            5, 10, 20, 50, 100, 150, 1
         ]
         self.thresholds = thresh[:self.hparams.n_thresh]
         self.metrics = [ECE, KL, AUC, brierScore]
@@ -310,7 +322,7 @@ class SegmentationModel(pl.LightningModule):
                     )
                 metrics[metric.__name__] = metrics[metric.__name__] + met
                 self.log(
-                    f"val_metric/{metric.__name__} {th*self.case_study_max:.0f}", met
+                    f"val_metric/{metric.__name__} {self.thtot[j]:.0f}", met
                 )
 
         for metric in self.metrics:  # print mean for metrics
@@ -344,7 +356,7 @@ class SegmentationModel(pl.LightningModule):
                     )
                 metrics[metric.__name__] = metrics[metric.__name__] + met
                 self.log(
-                    f"test_metric/{metric.__name__} {th*self.case_study_max:.0f}", met
+                    f"test_metric/{metric.__name__} {self.thtot[j]:.0f}", met
                 )
 
         for metric in self.metrics:  # print mean for metrics
@@ -352,17 +364,17 @@ class SegmentationModel(pl.LightningModule):
             self.log(f"test/{metric.__name__}", met)
 
         # Calculating Brier score input model
-        input_models_brier_score = {}
-        lv_thresholds = [1, 5, 10, 20, 50, 100, 150]
-        y = y * self.case_study_max
-        x = x * self.case_study_max
-        for j, lv in enumerate(lv_thresholds):
-            prob_input_models = (x > lv).float()
-            input_models_brier_score[lv] = (
-                ((prob_input_models - y.gt(lv).float()) ** 2).mean().item()
-            )
+        # input_models_brier_score = {}
+        # lv_thresholds = [1, 5, 10, 20, 50, 100, 150]
+        # y = y * self.case_study_max
+        # x = x * self.case_study_max
+        # for j, lv in enumerate(lv_thresholds):
+        #     prob_input_models = (x > lv).float()
+        #     input_models_brier_score[lv] = (
+        #         ((prob_input_models - y.gt(lv).float()) ** 2).mean().item()
+        #     )
 
-            print(f">Brier score for input models {lv} mm: {input_models_brier_score[lv]:.4f}")
+        #     print(f">Brier score for input models {lv} mm: {input_models_brier_score[lv]:.4f}")
 
         # sns.set_style("whitegrid")
 
