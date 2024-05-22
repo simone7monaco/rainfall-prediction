@@ -102,7 +102,7 @@ class ModelWithTemperature(nn.Module):
         # Calculate NLL and ECE before temperature scaling
         before_temperature_nll = nll_criterion(logits, labels).item()
         print('Before temperature - NLL: %.3f' % (before_temperature_nll))
-        print(f"SHAPE: {logits.shape()}")
+        print(f"SHAPE: {logits.shape}")
 
         # Next: optimize the temperature w.r.t. NLL
         optimizer = optim.LBFGS([self.temperature], lr=0.01, max_iter=50)
