@@ -114,27 +114,27 @@ def main(args):
     
 
     if fine_tune == 1:
-        model_checkpoint = ModelCheckpoint(
-            output_path / f"split_{args.n_split}",
-            monitor="val/ECE",
-            mode="min",
-            filename="{epoch}-{val/ECE:.4f}",
-        )
+        # model_checkpoint = ModelCheckpoint(
+        #     output_path / f"split_{args.n_split}",
+        #     monitor="val/ECE",
+        #     mode="min",
+        #     filename="{epoch}-{val/ECE:.4f}",
+        # )
         trainer = pl.Trainer(
             accelerator="gpu" if cuda.is_available() else "cpu",
             max_epochs=args.epochs_fn,
-            callbacks=[model_checkpoint],
+            callbacks=[], # model_checkpoint
             log_every_n_steps=1,
             logger=logger,  # default is TensorBoard
         )
         trainer.fit(model)
 
-        print(f"\nLoading best model ({model_checkpoint.best_model_path})")
-        model = SegmentationModel.load_from_checkpoint(
-            model_checkpoint.best_model_path,
-            fine_tune=fine_tune,
-            finetune_type=args.finetune_type,
-        )
+        # print(f"\nLoading best model ({model_checkpoint.best_model_path})")
+        # model = SegmentationModel.load_from_checkpoint(
+        #     model_checkpoint.best_model_path,
+        #     fine_tune=fine_tune,
+        #     finetune_type=args.finetune_type,
+        # )
 
         trainer.test(model)
 
