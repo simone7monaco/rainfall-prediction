@@ -210,7 +210,7 @@ class SegmentationModel(pl.LightningModule):
         y_p = torch.cat(y_p, dim=1)
         loss_CAPE = 0
         loss_BCE = 0
-        if self.hparams.fine_tune == 1 and self.current_epoch %2==0:
+        if self.hparams.fine_tune == 1: # and self.current_epoch %2==0:
             n_bins = 20
             if (
                 self.hparams.finetune_type == "bin"
