@@ -35,9 +35,9 @@ def get_args(args=None):
     parser.add_argument("--forward_passes", type=int, default=1)
     parser.add_argument("--code_version", type=int, default=5)
     parser.add_argument("--fine_tune", type=int, default=1)
-    parser.add_argument("--n_thresh", type=int, default=1)
+    parser.add_argument("--n_thresh", type=int, default=7)
     parser.add_argument("--indx_thresh", type=int, default=0)
-    parser.add_argument("--epochs_fn", "-f", type=int, default=80)
+    parser.add_argument("--epochs_fn", "-f", type=int, default=50)
     parser.add_argument("--finetune_type", type=str, default="bin", choices=["mine", "bin", "kde"])
     args = parser.parse_args(args)
     return args
@@ -68,7 +68,7 @@ def main(args):
 
     if  args.epochs>0:
         if not args.load_checkpoint:
-            early_stop = EarlyStopping(monitor="val/loss", min_delta=0.00, patience=25, verbose=False, mode="min")
+            early_stop = EarlyStopping(monitor="val/loss", min_delta=0.00, patience=15, verbose=False, mode="min")
             model_checkpoint = ModelCheckpoint(
                 output_path / f"split_{args.n_split}",
                 monitor="val/loss",
@@ -116,9 +116,9 @@ def main(args):
     if fine_tune == 1:
         model_checkpoint = ModelCheckpoint(
             output_path / f"split_{args.n_split}",
-            monitor="val/loss",
+            monitor="val/ECE",
             mode="min",
-            filename="{epoch}-{val/loss:.4f}",
+            filename="{epoch}-{val/ECE:.4f}",
         )
         trainer = pl.Trainer(
             accelerator="gpu" if cuda.is_available() else "cpu",
