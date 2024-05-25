@@ -29,15 +29,15 @@ def get_args(args=None):
     # parser.add_argument("--split_idx", type=str, default="701515")
     parser.add_argument("--n_split", type=int, default=8)
     parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--epochs", "-e", type=int, default=100)
+    parser.add_argument("--epochs", "-e", type=int, default=50)
     parser.add_argument("--load_checkpoint", type=Path, default=None)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--forward_passes", type=int, default=1)
     parser.add_argument("--code_version", type=int, default=5)
     parser.add_argument("--fine_tune", type=int, default=1)
-    parser.add_argument("--n_thresh", type=int, default=7)
+    parser.add_argument("--n_thresh", type=int, default=1)
     parser.add_argument("--indx_thresh", type=int, default=0)
-    parser.add_argument("--epochs_fn", "-f", type=int, default=80)
+    parser.add_argument("--epochs_fn", "-f", type=int, default=50)
     parser.add_argument("--finetune_type", type=str, default="bin", choices=["mine", "bin", "kde"])
     args = parser.parse_args(args)
     return args
@@ -80,7 +80,7 @@ def main(args):
             trainer = pl.Trainer(
                 accelerator="gpu" if cuda.is_available() else "cpu",
                 max_epochs=args.epochs,
-                callbacks=[model_checkpoint], # early_stop
+                callbacks=[model_checkpoint, early_stop],
                 log_every_n_steps=1,
                 logger=logger,  # default is TensorBoard
             )
@@ -116,9 +116,9 @@ def main(args):
     if fine_tune == 1:
         model_checkpoint = ModelCheckpoint(
             output_path / f"split_{args.n_split}",
-            monitor="val/ECE",
+            monitor="val/loss",
             mode="min",
-            filename="{epoch}-{val/ECE:.4f}",
+            filename="{epoch}-{val/loss:.4f}",
         )
         trainer = pl.Trainer(
             accelerator="gpu" if cuda.is_available() else "cpu",
