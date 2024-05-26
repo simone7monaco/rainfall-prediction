@@ -4,64 +4,6 @@ from torch import nn
 import torch.nn.functional as F
 from models.unet import EncBlock, DecBlock
 
-# SDE-Net from the paper "SDE-Net: Equipping Neural Networks with Uncertainty Estimates"
-# class Drift(nn.Module):
-#     def __init__(self):
-#         super(Drift, self).__init__()
-#         self.fc = nn.Linear(50, 50)
-#         self.relu = nn.ReLU(inplace=True)
-#     def forward(self, t, x):
-#         out = self.relu(self.fc(x))
-#         return out    
-
-
-
-# class Diffusion(nn.Module):
-#     def __init__(self):
-#         super(Diffusion, self).__init__()
-#         self.relu = nn.ReLU(inplace=True)
-#         self.fc1 = nn.Linear(50, 100)
-#         self.fc2 = nn.Linear(100, 1)
-#     def forward(self, t, x):
-#         out = self.relu(self.fc1(x))
-#         out = self.fc2(out)
-#         out = torch.sigmoid(out)
-#         return out
-    
-# class SDENet(nn.Module):
-#     def __init__(self, layer_depth):
-#         super(SDENet, self).__init__()
-#         self.layer_depth = layer_depth
-#         self.downsampling_layers = nn.Linear(90, 50)
-#         self.drift = Drift()
-#         self.diffusion = Diffusion()
-#         self.fc_layers = nn.Sequential(nn.ReLU(inplace=True), nn.Linear(50, 2))
-#         self.deltat = 4./self.layer_depth
-#         self.sigma = 0.5
-#     def forward(self, x, training_diffusion=False):
-#         out = self.downsampling_layers(x)
-#         if not training_diffusion:
-#             t = 0
-#             diffusion_term = self.sigma*self.diffusion(t, out)
-#             for i in range(self.layer_depth):
-#                 t = 4*(float(i))/self.layer_depth
-#                 out = out + self.drift(t, out)*self.deltat + diffusion_term*math.sqrt(self.deltat)*torch.randn_like(out).to(x)
-
-#             final_out = self.fc_layers(out) 
-#             mean = final_out[:,0]
-#             sigma = F.softplus(final_out[:,1])+1e-3
-#             return mean, sigma
-            
-#         else:
-#             t = 0
-#             final_out = self.diffusion(t, out.detach())  
-#             return final_out
-
-# Now the idea is to create a Diffusion and Drift networks that can be applied to the segmentation task (still in regression)
-# The difference is that now the input is a 2D image and the output is also a 2D image of the same size, then it is necessary to apply the
-# Diffusion and Drift networks to each pixel of the image. To still get valuable results, the Drift is an actual U-Net, to
-# capture the spatial dependencies of the pixel values. The Diffusion network is a set of convolutional layers and all the intermediate
-# outputs will be added as diffusion terms to the intermediate steps of the UNet (at the skip connections).
 
 class Diffusion(nn.Module):
     def __init__(self, channels):
@@ -131,9 +73,6 @@ class SDEUNet(nn.Module):
                 x = dec_block(x, skip)
             out = self.outconv(x)
             return out
-            # mean = out[:,0]
-            # sigma = F.softplus(out[:,1])+1e-3
-            # return mean, sigma
         else:
             final_out = self.diffusion(p.detach())
             return final_out

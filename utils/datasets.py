@@ -44,28 +44,33 @@ class NWPDataset(Dataset):
     def __len__(self):
         return self.tensors[0].size(0)
 
-class ExtremeDataset(NWPDataset):
+class IntenseDataset(NWPDataset):
     """
-    Wrapper of NWPDataset returning the extreme events and the test events for the current split,
-    together with a boolean label indicating if the event is extreme or not.
+    Wrapper of NWPDataset returning the intense events and the test events for the current split,
+    together with a boolean label indicating if the event is intense or not.
     """
     def __init__(self, split_idx, transform=None, seed=42,
                  input_path=Path("/media/monaco/DATA1/case_study/24h_10mmMAX_OI")):
         case_study = input_path.stem
-        case_study_max, available_models, _, _, test_dates, indices_one, indices_zero, _, _, _ = io.get_casestudy_stuff(
+        case_study_max, available_models, _, _, test_dates, indices_one, indices_zero, mask, _, _ = io.get_casestudy_stuff(
 			input_path, n_split=split_idx, case_study=case_study, ispadded=True, seed=seed)
- 
-        extreme_events = pd.concat([pd.read_csv(exev, header=None) for exev in input_path.glob('*extremeEvents.csv')])[0].values
-        not_extreme_events = np.array([date for date in test_dates if date not in extreme_events])
-        all_dates = np.concatenate([extreme_events, not_extreme_events])
-        self.labels = torch.cat([torch.ones(len(extreme_events)), torch.zeros(len(not_extreme_events))]).long()
+        self.case_study_max = case_study_max
+        self.mask = mask
+        
+        dates_df = pd.read_csv(input_path/"allevents_dates.csv", sep=";")
+        intense_events = dates_df[dates_df.INTENSE == 1].DATA.values
+        dates_df = dates_df.set_index('DATA')
+
+        not_intense_events = np.array([date for date in test_dates if date not in intense_events])
+        all_dates = np.concatenate([intense_events, not_intense_events])
+        self.labels = torch.tensor(dates_df.loc[all_dates, 'INTENSE'].values).long()
 
         X, Y, _, _ = io.load_data(input_path, all_dates, case_study_max, 
                                                        indices_one, indices_zero, available_models)
-        super().__init__((torch.from_numpy(X), torch.from_numpy(Y).unsqueeze(1), 
+        super().__init__((torch.from_numpy(X).float(), torch.from_numpy(Y).unsqueeze(1).float(), 
                           torch.from_numpy(all_dates)), transform=transform)
     
     def __getitem__(self, index):
-        return super().__getitem__(index) | {'isextreme_label': self.labels[index]}
+        return super().__getitem__(index) | {'isintense': self.labels[index]}
         
     

@@ -86,3 +86,9 @@ class SegmentationModel(_SegmentationModel):
 
 		for metric in self.metrics:
 			self.log(f"val/{metric.__name__}", metric(y_hat, y))
+
+
+# class SmallSegmentationModel(SegmentationModel):
+# 	def get_model(self):
+# 		self.automatic_optimization = False
+# 		return SDEUNet(self.in_features, self.out_features, channels=[64, 128, 256, 512])

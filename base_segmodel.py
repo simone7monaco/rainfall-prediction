@@ -45,9 +45,10 @@ class _SegmentationModel(pl.LightningModule):
 			seed=self.hparams.seed
 		)
 
-		# Removing extreme events from training dates
-		extreme_events = pd.concat([pd.read_csv(exev, header=None) for exev in self.hparams.input_path.glob('*extremeEvents.csv')])[0].values
-		train_dates = np.array([date for date in train_dates if date not in extreme_events])
+		# Removing intense events from training dates
+		all_dates = pd.read_csv(self.hparams.input_path/'allevents_dates.csv', sep=';')
+		intense_events = all_dates[all_dates['INTENSE']]['DATA'].values
+		train_dates = np.array([date for date in train_dates if date not in intense_events])
 
 		self.x_train, self.y_train, in_features, out_features = io.load_data(self.hparams.input_path, train_dates, case_study_max, indices_one, indices_zero, available_models)
 		self.x_val, self.y_val, in_features, out_features = io.load_data(self.hparams.input_path, val_dates, case_study_max, indices_one, indices_zero, available_models)
@@ -134,6 +135,9 @@ class _SegmentationModel(pl.LightningModule):
 	# 	plt.yscale('log')
 	# 	fig.savefig(Path(self.logger.log_dir)/"losses.png")
 
+	def eval(self):
+		return self.cnn.eval()
+	
 	@torch.no_grad()
 	def multiple_eval(self, x, num_forward_passes=10):
 		""" Function to get multiple evaluations of tensor x and returning the mean and variance of the predictions"""

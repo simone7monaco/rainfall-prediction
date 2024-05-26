@@ -61,7 +61,7 @@ class UNet(nn.Module):
         self.outconv = nn.Conv2d(64, out_features, kernel_size=1)
     
     def eval(self):
-        self.eval()
+        super().eval()
         if self.dropout > 0:
             for m in self.modules():
                 if isinstance(m, nn.Dropout):

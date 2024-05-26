@@ -38,6 +38,8 @@ def get_model(model_name):
 		from base_segmodel import _SegmentationModel as SegmentationModel
 	elif model_name == 'sde_unet':
 		from sde_segmodel import SegmentationModel
+	elif model_name == 'sde_unet_small':
+		from sde_segmodel import SmallSegmentationModel as SegmentationModel
 	elif model_name == 'ensemble_unet':
 		from ensemble_segmodel import SegmentationModel
 	else:
@@ -61,7 +63,7 @@ def main(args):
 	
 	args.input_path = input_path
 	if args.network_model == 'mcd_unet':
-		args.mc_dropout = .2
+		args.mcdropout = .2
     
 	# logger = CSVLogger(output_path, name=args.network_model)
 	SegmentationModel = get_model(args.network_model)

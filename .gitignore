@@ -161,6 +161,7 @@ cython_debug/
 
 .vscode/
 lightning_logs/
+extreme_lightning_logs/
 runs/
 reports/
 data/
