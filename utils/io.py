@@ -150,7 +150,7 @@ def load_data(
 def get_casestudy_stuff(
     input_path: str, n_split: int, case_study: str, ispadded: bool, seed: int
 ):  
-    if input_path.split('/')[-1] == 'RYDL':
+    if case_study == 'RYDL':
         case_study_max = 14
         available_models = ["1", "2", "3"]
     else:
