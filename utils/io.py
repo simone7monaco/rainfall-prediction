@@ -33,16 +33,19 @@ def get_model(
 
 def get_mask_indices(topdir: str, ispadded: bool):
     cs = topdir.stem.split("_")[-1]  # OI | radar
-    file_path = next(topdir.glob(f"{cs}*regrid*piem_vda.csv"))
-    if not file_path.exists():
-        file_path = next(topdir.glob(f"{cs}*piem_vda.csv"))
-    # file_path = os.path.join(topdir, "OI_regrid_mask_piem_vda_unet.csv")
+    if cs == 'RYDL':
+        mask = np.ones((96, 128))
+    else:
+        file_path = next(topdir.glob(f"{cs}*regrid*piem_vda.csv"))
+        if not file_path.exists():
+            file_path = next(topdir.glob(f"{cs}*piem_vda.csv"))
+        # file_path = os.path.join(topdir, "OI_regrid_mask_piem_vda_unet.csv")
 
-    mask = pd.read_csv(file_path, sep=";", header=None).to_numpy()
-    if ispadded:
-        mask = np.pad(
-            mask, ((0, 0), (0, 128 - mask.shape[1])), mode="constant", constant_values=0
-        )
+        mask = pd.read_csv(file_path, sep=";", header=None).to_numpy()
+        if ispadded:
+            mask = np.pad(
+                mask, ((0, 0), (0, 128 - mask.shape[1])), mode="constant", constant_values=0
+            )
 
     indices = np.where(mask == 1)
     indices_zero = np.where(mask == 0)
@@ -146,9 +149,13 @@ def load_data(
 
 def get_casestudy_stuff(
     input_path: str, n_split: int, case_study: str, ispadded: bool, seed: int
-):
-    case_study_max = 483.717752
-    available_models = ["bol00", "e1000", "c2200", "c5m00"]
+):  
+    if input_path.split('/')[-1] == 'RYDL':
+        case_study_max = 14
+        available_models = ["1", "2", "3"]
+    else:
+        case_study_max = 483.717752
+        available_models = ["bol00", "e1000", "c2200", "c5m00"]
 
     dates = pd.read_csv(input_path / "split/cluster_all_dates.csv", sep=";")
     skf = StratifiedKFold(n_splits=9, random_state=seed, shuffle=True)
