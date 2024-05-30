@@ -66,12 +66,13 @@ class SegmentationModel(pl.LightningModule):
             100 / self.case_study_max,
             150 / self.case_study_max,
         ]
-        if self.hparams.case_study == 'RYDL':
-            for i in range(len(thresh)):
-                thresh[i] = thresh[i]/15
         thtot = [
             1, 5, 10, 20, 50, 100, 150
         ]
+        if self.hparams.case_study == 'RYDL':
+            for i in range(len(thresh)):
+                thresh[i] = thresh[i]/5
+                thtot[i] = thtot[i]/5
         thresholds_indx = [x%len(thresh) for x in range(self.hparams.indx_thresh, self.hparams.n_thresh+self.hparams.indx_thresh)]
         self.thresholds = [thresh[indx] for indx in thresholds_indx]
         self.thtot = [thtot[indx] for indx in thresholds_indx]

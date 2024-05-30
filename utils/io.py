@@ -151,7 +151,7 @@ def get_casestudy_stuff(
     input_path: str, n_split: int, case_study: str, ispadded: bool, seed: int
 ):  
     if case_study == 'RYDL':
-        case_study_max = 14
+        case_study_max = 40.9375
         available_models = ["1", "2", "3"]
     else:
         case_study_max = 483.717752
