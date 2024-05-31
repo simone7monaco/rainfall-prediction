@@ -114,7 +114,7 @@ class ModelWithTemperature(nn.Module):
             return loss
         for i in range (50):
             optimizer.step(eval)
-            print(f"temperature: {self.temperature}     ")
+            print(f"temperature: {self.temperature.item()}     ")
 
         # Calculate NLL and ECE after temperature scaling
         after_temperature_nll = nll_criterion(self.temperature_scale(logits), labels).item()
