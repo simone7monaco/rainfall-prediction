@@ -93,7 +93,7 @@ def main(args):
                 finetune_type=args.finetune_type,
             )
             
-            trainer.test(model)
+            #trainer.test(model)
             temp=1
             if fine_tune == 0:
                 temperature=1 #set here
