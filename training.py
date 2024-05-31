@@ -101,7 +101,7 @@ def main(args):
                     model_temperature = ModelWithTemperature(model, args.seed, args.n_split, args.input_path, args.case_study, args.n_thresh)
                     temp = model_temperature.set_temperature()
                 
-                trainer.test(model, temp)
+                trainer.test(model)
         else:
             trainer = pl.Trainer(accelerator="gpu" if cuda.is_available() else "cpu")
             print(f"\n⬆️  Loading checkpoint {args.load_checkpoint}")
