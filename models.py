@@ -28,7 +28,7 @@ from utils.datasets import NWPDataset
 
 
 class SegmentationModel(pl.LightningModule):
-    def __init__(self, **hparams):
+    def __init__(self, temperature=1, **hparams):
         super().__init__()
         self.save_hyperparameters()
 
@@ -81,11 +81,12 @@ class SegmentationModel(pl.LightningModule):
 
         self.train_losses = []
         self.val_losses = []
+        self.temperature = temperature
 
     def forward(self, x, times):
         if isinstance(self.cnn, ExtraUNet):
             return self.cnn(x, times)
-        y = self.cnn(x) * self.mask
+        y = self.cnn(x) * self.mask /self.temperature
         y_prob = self.sigmoid(y) * self.mask
         return y, y_prob
 

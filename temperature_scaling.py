@@ -112,7 +112,7 @@ class ModelWithTemperature(nn.Module):
             loss = nll_criterion(self.temperature_scale(logits), labels)
             loss.backward()
             return loss
-        for i in range (50):
+        for i in range (10):
             optimizer.step(eval)
             print(f"temperature: {self.temperature.item()}     ")
 

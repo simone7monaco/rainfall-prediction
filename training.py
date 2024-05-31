@@ -68,7 +68,7 @@ def main(args):
 
     if  args.epochs>0:
         if not args.load_checkpoint:
-            early_stop = EarlyStopping(monitor="val/loss", min_delta=0.00, patience=15, verbose=False, mode="min")
+            early_stop = EarlyStopping(monitor="val/loss", min_delta=0.00, patience=30, verbose=False, mode="min")
             model_checkpoint = ModelCheckpoint(
                 output_path / f"split_{args.n_split}",
                 monitor="val/loss",
