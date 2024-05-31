@@ -93,15 +93,15 @@ def main(args):
                 finetune_type=args.finetune_type,
             )
             
-            
-            
+            trainer.test(model)
+            temp=1
             if fine_tune == 0:
                 temperature=1 #set here
                 if temperature==1:
                     model_temperature = ModelWithTemperature(model, args.seed, args.n_split, args.input_path, args.case_study, args.n_thresh)
                     temp = model_temperature.set_temperature()
                 
-                trainer.test(model)
+                trainer.test(model, temp)
         else:
             trainer = pl.Trainer(accelerator="gpu" if cuda.is_available() else "cpu")
             print(f"\n⬆️  Loading checkpoint {args.load_checkpoint}")
