@@ -61,6 +61,7 @@ def main(args):
     if args.fine_tune == 1:
         fine_tune = 1
         args.fine_tune = 0
+    args.temperature = 1
 
     logger = WandbLogger(project="rainfall_prediction")
     # add your batch size to the wandb config
@@ -93,15 +94,20 @@ def main(args):
                 finetune_type=args.finetune_type,
             )
             
-            #trainer.test(model)
+            trainer.test(model)
             temp=1
             if fine_tune == 0:
                 temperature=1 #set here
                 if temperature==1:
                     model_temperature = ModelWithTemperature(model, args.seed, args.n_split, args.input_path, args.case_study, args.n_thresh)
                     temp = model_temperature.set_temperature()
-                
-                trainer.test(model)
+                    model = SegmentationModel.load_from_checkpoint(
+                        model_checkpoint.best_model_path,
+                        fine_tune=fine_tune,
+                        finetune_type=args.finetune_type,
+                        temperature = temp
+                    )
+            
         else:
             trainer = pl.Trainer(accelerator="gpu" if cuda.is_available() else "cpu")
             print(f"\n⬆️  Loading checkpoint {args.load_checkpoint}")

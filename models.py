@@ -81,12 +81,11 @@ class SegmentationModel(pl.LightningModule):
 
         self.train_losses = []
         self.val_losses = []
-        self.temperature = 1
 
     def forward(self, x, times):
         if isinstance(self.cnn, ExtraUNet):
             return self.cnn(x, times)
-        y = self.cnn(x) * self.mask /self.temperature
+        y = self.cnn(x) * self.mask /self.hparams.temperature
         y_prob = self.sigmoid(y) * self.mask
         return y, y_prob
 
