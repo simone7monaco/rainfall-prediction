@@ -320,7 +320,7 @@ class SegmentationModel(pl.LightningModule):
                     )
                 metrics[metric.__name__] = metrics[metric.__name__] + met
                 self.log(
-                    f"val_metric/{metric.__name__} {self.thtot[j]:.0f}", met
+                    f"val_metric/{metric.__name__} {self.thtot[j]:.2f}", met
                 )
 
         for metric in self.metrics:  # print mean for metrics
@@ -354,7 +354,7 @@ class SegmentationModel(pl.LightningModule):
                     )
                 metrics[metric.__name__] = metrics[metric.__name__] + met
                 self.log(
-                    f"test_metric/{metric.__name__} {self.thtot[j]:.0f}", met
+                    f"test_metric/{metric.__name__} {self.thtot[j]:.2f}", met
                 )
 
         for metric in self.metrics:  # print mean for metrics
