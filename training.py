@@ -89,7 +89,7 @@ def main(args):
             print(f"\nLoading best model ({model_checkpoint.best_model_path})")
             best_model_path = model_checkpoint.best_model_path
             with open('best_model_path.csv', 'a') as f:
-                f.write(args.network_model + ' - ' + args.n_split + ': ' + best_model_path + '\n')
+                f.write(args.network_model + ' - ' + str(args.n_split) + ': ' + best_model_path + '\n')
             model = SegmentationModel.load_from_checkpoint(
                 model_checkpoint.best_model_path,
                 fine_tune=fine_tune,
