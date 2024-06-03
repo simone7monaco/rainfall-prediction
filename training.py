@@ -23,7 +23,7 @@ from models import SegmentationModel
 
 def get_args(args=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--case_study", "-c", type=str, default="24h_10mmMAX_OI", choices=["24h_10mmMAX_OI", "24h_10mmMAX_radar", "RYDL"])
+    parser.add_argument("--case_study", "-c", type=str, default="RYDL", choices=["24h_10mmMAX_OI", "24h_10mmMAX_radar", "RYDL"])
     parser.add_argument("--network_model", "-m", type=str, default="unet")
     parser.add_argument("--batch_size", type=int, default=32)
     # parser.add_argument("--split_idx", type=str, default="701515")
@@ -32,7 +32,6 @@ def get_args(args=None):
     parser.add_argument("--epochs", "-e", type=int, default=100)
     parser.add_argument("--load_checkpoint", type=Path, default=None)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--forward_passes", type=int, default=1)
     parser.add_argument("--code_version", type=int, default=5)
     parser.add_argument("--fine_tune", type=int, default=0)
     parser.add_argument("--n_thresh", type=int, default=1)
@@ -97,7 +96,7 @@ def main(args):
             trainer.test(model)
             temp=1
             if fine_tune == 0:
-                temperature=1 #set here
+                temperature=0 #set here
                 if temperature==1:
                     model_temperature = ModelWithTemperature(model, args.seed, args.n_split, args.input_path, args.case_study, args.n_thresh)
                     temp = model_temperature.set_temperature()
