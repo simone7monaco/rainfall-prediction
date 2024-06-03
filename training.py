@@ -36,7 +36,7 @@ def get_args(args=None):
     parser.add_argument("--fine_tune", type=int, default=0)
     parser.add_argument("--n_thresh", type=int, default=1)
     parser.add_argument("--indx_thresh", type=int, default=1)
-    parser.add_argument("--epochs_fn", "-f", type=int, default=50)
+    parser.add_argument("--epochs_fn", "-f", type=int, default=90)
     parser.add_argument("--finetune_type", type=str, default="bin", choices=["mine", "bin", "kde"])
     args = parser.parse_args(args)
     return args
