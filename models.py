@@ -71,8 +71,8 @@ class SegmentationModel(pl.LightningModule):
         ]
         if self.hparams.case_study == 'RYDL':
             for i in range(len(thresh)):
-                thresh[i] = float(thresh[i]/40)
-                thtot[i] = float(thtot[i]/40)
+                thresh[i] = float(thresh[i]/6.6)
+                thtot[i] = float(thtot[i]/6.6)
         print(thtot)
         thresholds_indx = [x%len(thresh) for x in range(self.hparams.indx_thresh, self.hparams.n_thresh+self.hparams.indx_thresh)]
         self.thresholds = [thresh[indx] for indx in thresholds_indx]
