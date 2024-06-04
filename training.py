@@ -109,7 +109,6 @@ def main(args):
                         finetune_type=args.finetune_type,
                         temperature = temp
                     )
-                    trainer.test(model)
             
         else:
             trainer = pl.Trainer(accelerator="gpu" if cuda.is_available() else "cpu")
@@ -148,7 +147,7 @@ def main(args):
             finetune_type=args.finetune_type,
         )
 
-        trainer.test(model)
+    trainer.test(model)
 
 if __name__ == "__main__":
     args = get_args()
