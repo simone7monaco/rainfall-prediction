@@ -117,6 +117,7 @@ class SegmentationModel(pl.LightningModule):
             case_study=self.hparams.case_study,
             ispadded=True,
             seed=self.hparams.seed,
+            dataset_size=self.hparams.dataset_size
         )
         self.x_train, self.y_train, in_features, out_features = io.load_data(
             self.hparams.input_path,
