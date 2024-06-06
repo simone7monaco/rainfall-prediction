@@ -427,7 +427,7 @@ class SegmentationModel(pl.LightningModule):
                 "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(
                     optimizer, factor=0.5
                 ),
-                "monitor": "val/loss",
+                "monitor": f"{self.begin_name}val/loss",
                 "frequency": 1,
                 # If "monitor" references validation metrics, then "frequency" should be set to a
                 # multiple of "trainer.check_val_every_n_epoch".
