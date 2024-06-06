@@ -26,11 +26,11 @@ def get_args(args=None):
     parser.add_argument("--case_study", "-c", type=str, default="RYDL", choices=["24h_10mmMAX_OI", "24h_10mmMAX_radar", "RYDL"])
     parser.add_argument("--network_model", "-m", type=str, default="unet")
     parser.add_argument("--batch_size", type=int, default=32)
-    parser.add_argument("--dataset_size", type=int, default=3000)
+    parser.add_argument("--dataset_size", type=int, default=1500)
     # parser.add_argument("--split_idx", type=str, default="701515")
     parser.add_argument("--n_split", type=int, default=8)
     parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--epochs", "-e", type=int, default=30)
+    parser.add_argument("--epochs", "-e", type=int, default=40)
     parser.add_argument("--load_checkpoint", type=Path, default=None)
     parser.add_argument("--seed", type=int, default=42)
     # parser.add_argument("--code_version", type=int, default=5)
@@ -38,7 +38,7 @@ def get_args(args=None):
     parser.add_argument("--n_thresh", type=int, default=1)
     parser.add_argument("--indx_thresh", type=int, default=1)
     parser.add_argument("--thresh", "-t", type=float, default=0.75)
-    parser.add_argument("--epochs_fn", "-f", type=int, default=10)
+    parser.add_argument("--epochs_fn", "-f", type=int, default=15)
     parser.add_argument("--n_bin", "-b", type=int, default=100)
     parser.add_argument("--finetune_type", type=str, default="bin", choices=["mine", "bin", "kde"])
     args = parser.parse_args(args)
@@ -65,7 +65,7 @@ def main(args):
         args.fine_tune = 0
     args.temperature = 1
 
-    logger = WandbLogger(project="rainfall_prediction")
+    logger = WandbLogger(project="rainfall_cape")
     # add your batch size to the wandb config
     logger.experiment.config["batch_size"] = 32
 
