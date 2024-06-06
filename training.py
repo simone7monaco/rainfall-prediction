@@ -129,7 +129,7 @@ def main(args):
             output_path / f"split_{args.n_split}",
             monitor="Cape/val/loss",
             mode="min",
-            filename="{epoch}-{val/loss:.4f}",
+            filename="{epoch}-{Cape/val/loss:.4f}",
         )
         trainer = pl.Trainer(
             accelerator="gpu" if cuda.is_available() else "cpu",
