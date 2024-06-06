@@ -73,12 +73,16 @@ class SegmentationModel(pl.LightningModule):
             for i in range(len(thresh)):
                 thresh[i] = float(thresh[i]/6.6)
                 thtot[i] = float(thtot[i]/6.6)
-        print(thtot)
-        thresholds_indx = [x%len(thresh) for x in range(self.hparams.indx_thresh, self.hparams.n_thresh+self.hparams.indx_thresh)]
-        self.thresholds = [thresh[indx] for indx in thresholds_indx]
-        self.thtot = [thtot[indx] for indx in thresholds_indx]
+        if self.hparams.n_thresh==1:
+            self.thresholds = [self.hparams.thresh/self.case_study_max]
+            self.thtot = [self.hparams.thresh]
+        else:
+            thresholds_indx = [x%len(thresh) for x in range(self.hparams.indx_thresh, self.hparams.n_thresh+self.hparams.indx_thresh)]
+            self.thresholds = [thresh[indx] for indx in thresholds_indx]
+            self.thtot = [thtot[indx] for indx in thresholds_indx]
         self.metrics = [ECE, KL, AUC, brierScore]
         self.test_predictions = []
+        self.n_bin = self.hparams.n_bin
 
         self.train_losses = []
         self.val_losses = []
@@ -216,7 +220,7 @@ class SegmentationModel(pl.LightningModule):
         loss_CAPE = 0
         loss_BCE = 0
         if self.hparams.fine_tune == 1: # and self.current_epoch %2==0:
-            n_bins = 100
+            n_bins = self.n_bin
             if (
                 self.hparams.finetune_type == "bin"
                 or self.hparams.finetune_type == "kde"
