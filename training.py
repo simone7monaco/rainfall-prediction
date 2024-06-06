@@ -94,12 +94,15 @@ def main(args):
             with open('best_model_path.txt', 'a') as f:
                 f.write(args.case_study + ' - ' + str(args.n_split) + ': ' + best_model_path + '\n')
             model = SegmentationModel.load_from_checkpoint(
+                model_checkpoint.best_model_path
+            )
+            
+            trainer.test(model)
+            model = SegmentationModel.load_from_checkpoint(
                 model_checkpoint.best_model_path,
                 fine_tune=fine_tune,
                 finetune_type=args.finetune_type,
             )
-            
-            trainer.test(model)
             temp=1
             if fine_tune == 0:
                 temperature=0 #set here
