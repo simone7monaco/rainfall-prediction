@@ -24,7 +24,7 @@ from models import SegmentationModel
 def get_args(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--case_study", "-c", type=str, default="RYDL", choices=["24h_10mmMAX_OI", "24h_10mmMAX_radar", "RYDL"])
-    # parser.add_argument("--network_model", "-m", type=str, default="unet")
+    parser.add_argument("--network_model", "-m", type=str, default="unet")
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--dataset_size", type=int, default=3000)
     # parser.add_argument("--split_idx", type=str, default="701515")
