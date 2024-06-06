@@ -83,6 +83,11 @@ class SegmentationModel(pl.LightningModule):
         self.metrics = [ECE, KL, AUC, brierScore]
         self.test_predictions = []
         self.n_bin = self.hparams.n_bin
+        
+        if self.hparams.fine_tune:
+            self.begin_name = "Cape/"
+        else:
+            self.begin_name = ""
 
         self.train_losses = []
         self.val_losses = []
@@ -291,9 +296,9 @@ class SegmentationModel(pl.LightningModule):
         #loss = self.FCL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1]) ##focal loss
         #loss = self.ERL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1]) ##entropy reg loss
         self.train_losses.append([self.current_epoch, loss.item()])
-        self.log("train/loss", loss, prog_bar=True)
-        self.log("train/BCE", loss_BCE)
-        self.log("train/CAPE", loss_CAPE)
+        self.log(f"{self.begin_name}train/loss", loss, prog_bar=True)
+        self.log(f"{self.begin_name}train/BCE", loss_BCE)
+        self.log(f"{self.begin_name}train/CAPE", loss_CAPE)
 
         return loss
 
@@ -306,7 +311,7 @@ class SegmentationModel(pl.LightningModule):
         y_p = torch.cat(y_p, dim=1).to(self.device)
         loss = self.BCEL(y_hat[:, :, self.mask == 1], y_p[:, :, self.mask == 1])
         self.val_losses.append([self.current_epoch, loss.item()])
-        self.log("val/loss", loss, prog_bar=True)
+        self.log(f"{self.begin_name}val/loss", loss, prog_bar=True)
 
         metrics = dict()
 
@@ -324,12 +329,12 @@ class SegmentationModel(pl.LightningModule):
                     )
                 metrics[metric.__name__] = metrics[metric.__name__] + met
                 self.log(
-                    f"val_metric/{metric.__name__} {self.thtot[j]:.2f}", met
+                    f"{self.begin_name}val_metric/{metric.__name__} {self.thtot[j]:.2f}", met
                 )
 
         for metric in self.metrics:  # print mean for metrics
             met = metrics[metric.__name__] / len(self.thresholds)
-            self.log(f"val/{metric.__name__}", met)
+            self.log(f"{self.begin_name}val/{metric.__name__}", met)
 
     def test_step(self, batch, batch_idx):
         x, y, ev_date = batch["x"], batch["y"], batch.get("ev_date")
@@ -357,13 +362,11 @@ class SegmentationModel(pl.LightningModule):
                         y_p[:, j, self.mask == 1], y_hat_prob[:, j, self.mask == 1]
                     )
                 metrics[metric.__name__] = metrics[metric.__name__] + met
-                self.log(
-                    f"test_metric/{metric.__name__} {self.thtot[j]:.2f}", met
-                )
+                self.log(f"{self.begin_name}test_metric/{metric.__name__} {self.thtot[j]:.2f}", met)
 
         for metric in self.metrics:  # print mean for metrics
             met = metrics[metric.__name__] / len(self.thresholds)
-            self.log(f"test/{metric.__name__}", met)
+            self.log(f"{self.begin_name}test/{metric.__name__}", met)
 
         #Calculating Brier score input model
         input_models_brier_score = {}
