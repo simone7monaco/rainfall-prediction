@@ -154,19 +154,25 @@ def load_data(
 def get_casestudy_stuff(
     input_path: str, n_split: int, case_study: str, ispadded: bool, seed: int, dataset_size:int
 ):  
+    dates = pd.read_csv(input_path / "split/cluster_all_dates.csv", sep=";")
+    
     if case_study == 'RYDL':
         case_study_max = 40.9375
         available_models = ["1", "2", "3"]
+        step = 3000//dataset_size
+        dates = dates.iloc[::step] 
     elif case_study == 'SBAD':
         case_study_max = 1
         available_models = [k+1 for  k in range(12)]
+        if dataset_size>2691:
+            dataset_size=2691
+        dates = dates.iloc[:dataset_size] 
     else:
         case_study_max = 483.717752
         available_models = ["bol00", "e1000", "c2200", "c5m00"]
 
-    dates = pd.read_csv(input_path / "split/cluster_all_dates.csv", sep=";")
-    step = 3000//dataset_size
-    dates = dates.iloc[::step] ##################################################################################
+    
+    
     skf = StratifiedKFold(n_splits=9, random_state=seed, shuffle=True)
     train_index, test_index = list(skf.split(dates, dates.NAME))[n_split]
     val_index, train_index = np.split(train_index, [len(test_index)])
