@@ -23,10 +23,10 @@ from models import SegmentationModel
 
 def get_args(args=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--case_study", "-c", type=str, default="RYDL", choices=["24h_10mmMAX_OI", "24h_10mmMAX_radar", "RYDL"])
+    parser.add_argument("--case_study", "-c", type=str, default="SBAD", choices=["24h_10mmMAX_OI", "24h_10mmMAX_radar", "RYDL", "SBAD"])
     parser.add_argument("--network_model", "-m", type=str, default="unet")
     parser.add_argument("--batch_size", type=int, default=32)
-    parser.add_argument("--dataset_size", type=int, default=1500)
+    parser.add_argument("--dataset_size", type=int, default=500)
     # parser.add_argument("--split_idx", type=str, default="701515")
     parser.add_argument("--n_split", type=int, default=8)
     parser.add_argument("--lr", type=float, default=1e-4)
@@ -39,7 +39,7 @@ def get_args(args=None):
     parser.add_argument("--indx_thresh", type=int, default=1)
     parser.add_argument("--thresh", "-t", type=float, default=0.75)
     parser.add_argument("--epochs_fn", "-f", type=int, default=15)
-    parser.add_argument("--n_bin", "-b", type=int, default=100)
+    parser.add_argument("--n_bin", "-b", type=int, default=20)
     parser.add_argument("--finetune_type", type=str, default="bin", choices=["mine", "bin", "kde"])
     args = parser.parse_args(args)
     return args

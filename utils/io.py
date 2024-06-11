@@ -153,6 +153,9 @@ def get_casestudy_stuff(
     if case_study == 'RYDL':
         case_study_max = 40.9375
         available_models = ["1", "2", "3"]
+    elif case_study == 'SBAD':
+        case_study_max = 1
+        available_models = [k+1 for  k in range(12)]
     else:
         case_study_max = 483.717752
         available_models = ["bol00", "e1000", "c2200", "c5m00"]

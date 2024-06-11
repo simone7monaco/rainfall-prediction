@@ -74,8 +74,12 @@ class SegmentationModel(pl.LightningModule):
                 thresh[i] = float(thresh[i]/6.6)
                 thtot[i] = float(thtot[i]/6.6)
         if self.hparams.n_thresh==1:
-            self.thresholds = [self.hparams.thresh/self.case_study_max]
-            self.thtot = [self.hparams.thresh]
+            if self.hparams.case_study == 'SBAD':
+                self.thresholds = [self.hparams.thresh/4 - 0.1]
+                self.thtot = [self.hparams.thresh]
+            else:
+                self.thresholds = [self.hparams.thresh/self.case_study_max]
+                self.thtot = [self.hparams.thresh]
         else:
             thresholds_indx = [x%len(thresh) for x in range(self.hparams.indx_thresh, self.hparams.n_thresh+self.hparams.indx_thresh)]
             self.thresholds = [thresh[indx] for indx in thresholds_indx]
