@@ -55,7 +55,7 @@ def get_mask_indices(topdir: str, ispadded: bool):
 def get_obs(topdir: str, date: str, case_study_max: float) -> np.ndarray:
     # file_path = topdir / "obs" / "data" / f"OI_{date}_regrid.csv"
     case_study = topdir.stem.split("_")[-1]
-    file_path = list((topdir / "obs" / "data").glob(f"{case_study}*{date}*csv"))
+    file_path = list((topdir / "obs" / "data").glob(f"{case_study}_{date}.csv"))
     if len(file_path) > 1:
         file_path = [f for f in file_path if f.stem.endswith("regrid")][0]
     elif len(file_path) == 1:
@@ -63,6 +63,10 @@ def get_obs(topdir: str, date: str, case_study_max: float) -> np.ndarray:
     else:
         raise FileNotFoundError(f"File '{case_study}*{date}*.csv' does not exist")
     obs_data = pd.read_csv(file_path, sep=";", header=None).to_numpy()
+    
+    if case_study_max == 1:  #SBAD case study
+        case_study_max=4
+    
     return obs_data / case_study_max
 
 
