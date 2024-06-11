@@ -374,17 +374,17 @@ class SegmentationModel(pl.LightningModule):
             self.log(f"{self.begin_name}test/{metric.__name__}", met)
 
         #Calculating Brier score input model
-        input_models_brier_score = {}
-        lv_thresholds = [1, 5, 10, 20, 50, 100, 150]
-        y = y * self.case_study_max
-        x = x * self.case_study_max
-        for j, lv in enumerate(lv_thresholds):
-            prob_input_models = (x > lv).float()
-            input_models_brier_score[lv] = (
-                ((prob_input_models - y.gt(lv).float()) ** 2).mean().item()
-            )
+        # input_models_brier_score = {}
+        # lv_thresholds = [1, 5, 10, 20, 50, 100, 150]
+        # y = y * self.case_study_max
+        # x = x * self.case_study_max
+        # for j, lv in enumerate(lv_thresholds):
+        #     prob_input_models = (x > lv).float()
+        #     input_models_brier_score[lv] = (
+        #         ((prob_input_models - y.gt(lv).float()) ** 2).mean().item()
+        #     )
 
-            print(f">Brier score for input models {lv} mm: {input_models_brier_score[lv]:.4f}")
+        #     print(f">Brier score for input models {lv} mm: {input_models_brier_score[lv]:.4f}")
 
         # sns.set_style("whitegrid")
 
