@@ -33,7 +33,7 @@ def get_model(
 
 def get_mask_indices(topdir: str, ispadded: bool):
     cs = topdir.stem.split("_")[-1]  # OI | radar
-    if cs == 'RYDL':
+    if cs == 'RYDL' or cs == 'SBAD':
         mask = np.ones((96, 128))
     else:
         file_path = next(topdir.glob(f"{cs}*regrid*piem_vda.csv"))
