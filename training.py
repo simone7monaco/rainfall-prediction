@@ -71,7 +71,7 @@ def main(args):
 
     if  args.epochs>0:
         if not args.load_checkpoint:
-            early_stop = EarlyStopping(monitor="val/loss", min_delta=0.00, patience=30, verbose=False, mode="min")
+            #early_stop = EarlyStopping(monitor="val/loss", min_delta=0.00, patience=30, verbose=False, mode="min")
             model_checkpoint = ModelCheckpoint(
                 output_path / f"split_{args.n_split}",
                 monitor="val/loss",
@@ -83,7 +83,7 @@ def main(args):
             trainer = pl.Trainer(
                 accelerator="gpu" if cuda.is_available() else "cpu",
                 max_epochs=args.epochs,
-                callbacks=[model_checkpoint, early_stop],
+                callbacks=[model_checkpoint], #[model_checkpoint, early_stop],
                 log_every_n_steps=1,
                 logger=logger,  # default is TensorBoard
             )
